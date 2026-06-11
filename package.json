@@ -1,7 +1,7 @@
 {
   "name": "dafke",
   "version": "0.5.0",
-  "description": "Dafke AI Control Center \u2014 CLI tool and Claude Code plugin for AI-assisted development onboarding",
+  "description": "Dafke AI Control Center — CLI tool and Claude Code plugin for AI-assisted development onboarding",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -72,5 +72,8 @@
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.4"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true
   }
 }
