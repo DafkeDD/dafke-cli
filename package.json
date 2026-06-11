@@ -1,0 +1,76 @@
+{
+  "name": "dafke",
+  "version": "0.5.0",
+  "description": "Dafke AI Control Center \u2014 CLI tool and Claude Code plugin for AI-assisted development onboarding",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.mts"
+    }
+  },
+  "bin": {
+    "dafke": "dist/cli.mjs"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    "plugins/",
+    ".claude-plugin/"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "bash tests/e2e/smoke-test.sh",
+    "test:docker": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude-code",
+    "ai",
+    "developer-tools",
+    "onboarding",
+    "dafke"
+  ],
+  "license": "UNLICENSED",
+  "private": false,
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.2.0",
+    "chalk": "^5.6.2",
+    "citty": "^0.2.2",
+    "cosmiconfig": "^9.0.1",
+    "cross-spawn": "^7.0.6",
+    "env-paths": "^4.0.0",
+    "execa": "^9.6.1",
+    "listr2": "^10.2.1",
+    "yaml": "^2.8.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/typescript-checker": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/cross-spawn": "^6.0.6",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^10.2.0",
+    "memfs": "^4.57.2",
+    "prettier": "^3.8.3",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^4.1.4"
+  }
+}

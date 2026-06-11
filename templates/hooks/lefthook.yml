@@ -1,0 +1,75 @@
+# lefthook.yml - Git hooks managed by dafke
+# These hooks BLOCK on failure to catch issues before they reach CI.
+pre-commit:
+  parallel: true
+  commands:
+    gitleaks:
+      # Scan ONLY the staged diff, not the whole working tree. `detect --no-git`
+      # walks build output (bin/, obj/, dist/), node_modules/, TestResults/, etc.
+      # on every commit — that easily hits ~100 MB / several seconds in a
+      # populated workspace. `protect --staged` scans just what's about to be
+      # committed (tens of ms). It still reads .gitleaks.toml so any [allowlist]
+      # is preserved, and still BLOCKS on any finding. Full working-tree scans
+      # belong in CI as defense in depth.
+      run: command -v gitleaks >/dev/null && gitleaks protect --staged --redact --verbose || npm_config_registry=https://registry.npmjs.org npx --yes gitleaks protect --staged --redact --verbose
+    lint:
+      # Only run when JS/TS is staged (skip on e.g. .NET-only commits). For each
+      # staged file, walk up to the nearest package.json and run `npm run lint`
+      # there — supports polyglot (.NET + React subproject) and monorepo layouts
+      # without requiring a root package.json. De-dup so lint runs once per
+      # project. Paths are assumed not to contain spaces (typical for repos).
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
+      run: |
+        rc=0
+        done_dirs=:
+        for f in {staged_files}; do
+          d=$(dirname $f)
+          while [ $d != . ] && [ $d != / ] && [ ! -f $d/package.json ]; do d=$(dirname $d); done
+          if [ -f $d/package.json ]; then
+            case $done_dirs in
+              *:$d:*) ;;
+              *) done_dirs=$done_dirs$d:
+                 (cd $d && npm run lint --if-present) || rc=1 ;;
+            esac
+          fi
+        done
+        exit $rc
+    typecheck:
+      # Same discovery pattern as lint; TS files only.
+      glob: "*.{ts,tsx}"
+      run: |
+        rc=0
+        done_dirs=:
+        for f in {staged_files}; do
+          d=$(dirname $f)
+          while [ $d != . ] && [ $d != / ] && [ ! -f $d/package.json ]; do d=$(dirname $d); done
+          if [ -f $d/package.json ]; then
+            case $done_dirs in
+              *:$d:*) ;;
+              *) done_dirs=$done_dirs$d:
+                 (cd $d && npm run typecheck --if-present) || rc=1 ;;
+            esac
+          fi
+        done
+        exit $rc
+
+pre-push:
+  parallel: true
+  commands:
+    test:
+      run: npm run test --if-present
+    security:
+      run: npx --yes audit-ci --moderate 2>/dev/null || true
+    coverage:
+      run: npm run test:coverage --if-present 2>/dev/null || true
+
+commit-msg:
+  commands:
+    conventional:
+      run: npx --yes commitlint --edit {1} 2>/dev/null || true
+    co-author-check:
+      run: |
+        grep -q "Co-Authored-By:" {1} || echo "WARNING: Missing Co-Authored-By trailer. AI-assisted commits should include it."
+    ticket-id:
+      run: |
+        grep -qE '(AB#[0-9]+|[A-Z]{2,10}-[0-9]+|#[0-9]+)' {1} || echo "WARNING: No ticket ID found in commit message."

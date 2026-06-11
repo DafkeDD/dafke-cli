@@ -1,0 +1,10 @@
+# Normalize line endings for cross-platform compatibility
+* text=auto
+
+# Force LF for shell scripts and config files
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf

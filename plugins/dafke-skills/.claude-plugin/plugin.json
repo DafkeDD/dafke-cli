@@ -1,0 +1,6 @@
+{
+  "name": "dafke-skills",
+  "version": "0.1.0",
+  "description": "Author and optimize Dafke skills. Wraps the official Anthropic skill-creator and enforces Dafke's token-efficiency conventions (progressive disclosure).",
+  "author": { "name": "Davey — ITWorxs", "email": "davey@itworxs.be" }
+}

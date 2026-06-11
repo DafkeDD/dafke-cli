@@ -1,0 +1,5 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.5.schema.json",
+  "specVersion": "1.5",
+  "_comment": "Generate SBOM with: npx @cyclonedx/cyclonedx-npm --output-file sbom.json"
+}

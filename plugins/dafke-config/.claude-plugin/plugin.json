@@ -1,0 +1,6 @@
+{
+  "name": "dafke-config",
+  "version": "0.4.0",
+  "description": "Project initialization, diagnostics, updates, and plugin discovery",
+  "author": { "name": "Dafke Platform Engineering", "email": "platform@dafke.be" }
+}

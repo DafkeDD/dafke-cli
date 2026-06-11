@@ -1,0 +1,16 @@
+```mermaid
+C4Context
+    title System Context — dafke
+
+    System(system, "dafke", "Dafke AI Control Center — CLI tool and Claude Code plugin for AI-assisted development onboarding")
+
+    Person(dev, "Developer", "Uses AI-assisted development")
+    System_Ext(ado, "Azure DevOps", "CI/CD, repos, work items")
+    System_Ext(gitnexus, "GitNexus", "Code intelligence graph")
+    System_Ext(context7, "Context7", "Library documentation")
+
+    Rel(dev, system, "Develops with Claude Code")
+    Rel(system, ado, "Pipelines, PRs, builds")
+    Rel(system, gitnexus, "Symbol analysis, impact")
+    Rel(system, context7, "API docs lookup")
+```

@@ -1,0 +1,6 @@
+{
+  "name": "dafke-sdlc",
+  "version": "0.4.0",
+  "description": "Story-to-PR development pipeline with spec generation, planning, implementation, review, and parallel execution",
+  "author": { "name": "Dafke Platform Engineering", "email": "platform@dafke.be" }
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+.gitnexus
+.dafke
+graphify-out
+.git

@@ -1,0 +1,6 @@
+{
+  "name": "dafke-observability",
+  "version": "0.4.0",
+  "description": "CI/CD monitoring, deployment tracking, DORA metrics, and backlog management",
+  "author": { "name": "Dafke Platform Engineering", "email": "platform@dafke.be" }
+}

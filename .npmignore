@@ -1,0 +1,23 @@
+# Source (not needed in published package)
+src/
+tests/
+coverage/
+.claude/
+.gitnexus/
+.dafke/
+docs/superpowers/
+
+# Config
+tsup.config.ts
+tsconfig.json
+vitest.config.ts
+eslint.config.js
+.prettierrc
+.prettierignore
+.gitattributes
+
+# Dev files
+TODO
+AGENTS.md
+.claude-plugin/
+.publish/

@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Coverage (root-only to not exclude templates/resolve/coverage/)
+/coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude local settings (per-developer, not shared)
+.claude/settings.local.json
+
+# Claude session artifacts (ephemeral, per-session)
+.claude/HANDOFF.md
+.claude/scheduled_tasks.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dafke wizard state (ephemeral)
+.dafke/
+
+# Documentation crew workspace (intermediate artifacts from /docs:generate)
+.ccdocs/
+
+# Generated binaries
+*.gen.pptx
+
+# Session artifacts
+docs/superpowers/
+TODO
+
+# Temp
+*.tmp
+*.temp
+.cache/
+.stryker-tmp/
+reports/
+
+# Logs
+*.log
+npm-debug.log*
+.gitnexus/

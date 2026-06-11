@@ -1,0 +1,282 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { existsSync, readFileSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
+import {
+  generateRules,
+  getRuleTemplateNames,
+} from "../../src/core/scaffold/rules-generator.js";
+import { VERSION } from "../../src/version.js";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeTempRepo(): string {
+  const dir = join(tmpdir(), `dafke-rules-test-${randomUUID()}`);
+  mkdirSync(join(dir, ".claude", "rules"), { recursive: true });
+  return dir;
+}
+
+// ---------------------------------------------------------------------------
+// getRuleTemplateNames
+// ---------------------------------------------------------------------------
+
+describe("getRuleTemplateNames", () => {
+  it("returns global rules when no adapter templates provided", () => {
+    const names = getRuleTemplateNames();
+    expect(names).toContain("architecture");
+    expect(names).toContain("git-conventions");
+    expect(names).toContain("mcp-tools");
+    expect(names).toHaveLength(3);
+  });
+
+  it("combines global + adapter templates without duplicates", () => {
+    const names = getRuleTemplateNames(["typescript-standards", "typescript-testing"]);
+    expect(names).toContain("architecture");
+    expect(names).toContain("git-conventions");
+    expect(names).toContain("mcp-tools");
+    expect(names).toContain("typescript-standards");
+    expect(names).toContain("typescript-testing");
+    expect(names).toHaveLength(5);
+  });
+
+  it("deduplicates when adapter includes a global template name", () => {
+    const names = getRuleTemplateNames(["architecture", "typescript-standards"]);
+    expect(names.filter((n) => n === "architecture")).toHaveLength(1);
+  });
+
+  it("handles empty adapter templates", () => {
+    const names = getRuleTemplateNames([]);
+    expect(names).toHaveLength(3); // Only globals
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateRules — Happy Paths
+// ---------------------------------------------------------------------------
+
+describe("generateRules", () => {
+  let tempRepo: string;
+
+  beforeEach(() => {
+    tempRepo = makeTempRepo();
+  });
+
+  afterEach(() => {
+    rmSync(tempRepo, { recursive: true, force: true });
+  });
+
+  it("generates correct rule files for TypeScript project", async () => {
+    const result = await generateRules(tempRepo, [
+      "architecture", "git-conventions", "mcp-tools",
+      "typescript-standards", "typescript-testing",
+    ]);
+
+    expect(result.created).toHaveLength(5);
+    expect(result.errors).toHaveLength(0);
+    expect(result.skipped).toHaveLength(0);
+
+    // Check all files exist
+    for (const name of ["architecture", "git-conventions", "mcp-tools", "typescript-standards", "typescript-testing"]) {
+      expect(existsSync(join(tempRepo, ".claude", "rules", `${name}.md`))).toBe(true);
+    }
+  });
+
+  it("generates correct rule files for Java project", async () => {
+    const result = await generateRules(tempRepo, [
+      "architecture", "git-conventions", "mcp-tools",
+      "java-standards", "java-testing",
+    ]);
+
+    expect(result.created).toHaveLength(5);
+    expect(existsSync(join(tempRepo, ".claude", "rules", "java-standards.md"))).toBe(true);
+    expect(existsSync(join(tempRepo, ".claude", "rules", "java-testing.md"))).toBe(true);
+  });
+
+  it("generates correct rule files for .NET project", async () => {
+    const result = await generateRules(tempRepo, [
+      "architecture", "git-conventions", "mcp-tools",
+      "dotnet-standards", "dotnet-testing",
+    ]);
+
+    expect(result.created).toHaveLength(5);
+    expect(existsSync(join(tempRepo, ".claude", "rules", "dotnet-standards.md"))).toBe(true);
+  });
+
+  it("generates correct rule files for Python project", async () => {
+    const result = await generateRules(tempRepo, [
+      "architecture", "git-conventions", "mcp-tools",
+      "python-standards", "python-testing",
+    ]);
+
+    expect(result.created).toHaveLength(5);
+    expect(existsSync(join(tempRepo, ".claude", "rules", "python-standards.md"))).toBe(true);
+  });
+
+  it("generates only global rules for Delphi/FoxPro (generic only)", async () => {
+    const result = await generateRules(tempRepo, [
+      "architecture", "git-conventions", "mcp-tools",
+    ]);
+
+    expect(result.created).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("global rule files have no YAML frontmatter", async () => {
+    await generateRules(tempRepo, ["architecture"]);
+
+    const content = readFileSync(join(tempRepo, ".claude", "rules", "architecture.md"), "utf-8");
+    expect(content.startsWith("# Generated by dafke")).toBe(true);
+    expect(content).not.toContain("---\nglobs:");
+  });
+
+  it("tech-specific rule files have correct globs frontmatter", async () => {
+    await generateRules(tempRepo, ["typescript-standards"]);
+
+    const content = readFileSync(join(tempRepo, ".claude", "rules", "typescript-standards.md"), "utf-8");
+    expect(content).toContain("---");
+    expect(content).toContain("globs:");
+    expect(content).toContain("src/**/*.ts");
+  });
+
+  it("files have generated-by header with current version", async () => {
+    await generateRules(tempRepo, ["architecture"]);
+
+    const content = readFileSync(join(tempRepo, ".claude", "rules", "architecture.md"), "utf-8");
+    expect(content).toContain(`# Generated by dafke v${VERSION}`);
+  });
+
+  it("template with no variables renders correctly", async () => {
+    // All templates use {{version}} but the rendering should work even if empty
+    await generateRules(tempRepo, ["git-conventions"]);
+
+    const content = readFileSync(join(tempRepo, ".claude", "rules", "git-conventions.md"), "utf-8");
+    expect(content.length).toBeGreaterThan(50);
+    expect(content).not.toContain("{{");
+  });
+
+  it("drift detection: auto-updates file matching template except version header", async () => {
+    // Generate initial version
+    await generateRules(tempRepo, ["architecture"]);
+    const path = join(tempRepo, ".claude", "rules", "architecture.md");
+    const original = readFileSync(path, "utf-8");
+
+    // Simulate version change by writing same content with different version header
+    const oldVersion = original.replace(
+      `# Generated by dafke v${VERSION} — do not edit manually`,
+      "# Generated by dafke v0.0.1 — do not edit manually",
+    );
+    writeFileSync(path, oldVersion, "utf-8");
+
+    // Re-generate — should auto-update (tier 1: unmodified)
+    const result = await generateRules(tempRepo, ["architecture"]);
+    expect(result.created).toContain("architecture.md");
+    expect(result.skipped).not.toContain("architecture.md");
+
+    const updated = readFileSync(path, "utf-8");
+    expect(updated).toContain(`# Generated by dafke v${VERSION}`);
+  });
+
+  it("preserves user-modified rule files (tier 2)", async () => {
+    // Generate initial version
+    await generateRules(tempRepo, ["architecture"]);
+    const path = join(tempRepo, ".claude", "rules", "architecture.md");
+
+    // User modifies the file
+    writeFileSync(path, "# My custom architecture rules\nCustom content here\n", "utf-8");
+
+    // Re-generate — should preserve user modification
+    const result = await generateRules(tempRepo, ["architecture"]);
+    expect(result.skipped).toContain("architecture.md");
+    expect(result.created).not.toContain("architecture.md");
+
+    const content = readFileSync(path, "utf-8");
+    expect(content).toContain("My custom architecture rules");
+  });
+
+  it("creates newly added rule files (tier 3)", async () => {
+    // Generate only global rules first
+    await generateRules(tempRepo, ["architecture"]);
+
+    // Now generate with TS templates — should create new ones
+    const result = await generateRules(tempRepo, ["architecture", "typescript-standards"]);
+    expect(result.created).toContain("typescript-standards.md");
+  });
+
+  it("adapter without getInstructionTemplates returns only global rules", async () => {
+    // Pass empty adapter templates — simulate adapter without method
+    const names = getRuleTemplateNames(undefined);
+    expect(names).toHaveLength(3);
+    expect(names).toEqual(["architecture", "git-conventions", "mcp-tools"]);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Failure Paths
+  // ---------------------------------------------------------------------------
+
+  it("handles missing template gracefully", async () => {
+    const result = await generateRules(tempRepo, ["nonexistent-template"]);
+
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0]).toContain("Template not found");
+  });
+
+  it("handles write permission denied", async () => {
+    // Remove .claude/rules dir and replace with a file (makes mkdir fail)
+    rmSync(join(tempRepo, ".claude", "rules"), { recursive: true });
+    writeFileSync(join(tempRepo, ".claude", "rules"), "blocker", "utf-8");
+
+    const result = await generateRules(tempRepo, ["architecture"]);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("handles no tech stack detected (global only)", async () => {
+    const result = await generateRules(tempRepo, ["architecture", "git-conventions", "mcp-tools"]);
+
+    expect(result.created).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("handles empty template content", async () => {
+    // This tests the generator's response to an empty rendering.
+    // In practice, templates have content, but we verify the guard.
+    // Since we can't easily make the template engine return empty,
+    // we test that the generator produces valid files for all known templates.
+    const allTemplates = [
+      "architecture", "git-conventions", "mcp-tools",
+      "typescript-standards", "typescript-testing",
+    ];
+    const result = await generateRules(tempRepo, allTemplates);
+
+    for (const name of allTemplates) {
+      const path = join(tempRepo, ".claude", "rules", `${name}.md`);
+      if (existsSync(path)) {
+        const content = readFileSync(path, "utf-8");
+        expect(content.trim().length).toBeGreaterThan(0);
+      }
+    }
+
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("handles directory creation failure gracefully", async () => {
+    // Use an impossible path to trigger mkdir failure
+    const badRepo = join(tempRepo, "nonexistent-file.txt");
+    writeFileSync(badRepo, "blocker", "utf-8");
+
+    const result = await generateRules(badRepo, ["architecture"]);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("handles atomic write failure (error propagated in result)", async () => {
+    // Simulate by making the target file's parent a regular file
+    const rulesDir = join(tempRepo, ".claude", "rules");
+    rmSync(rulesDir, { recursive: true });
+    writeFileSync(rulesDir, "blocker", "utf-8");
+
+    const result = await generateRules(tempRepo, ["architecture"]);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+});

@@ -1,0 +1,9 @@
+{
+  "name": "dafke",
+  "version": "0.4.0",
+  "description": "Dafke AI Control Center — Enterprise onboarding, configuration, and developer workflow for Claude Code",
+  "author": {
+    "name": "Dafke Platform Engineering",
+    "email": "platform@dafke.be"
+  }
+}

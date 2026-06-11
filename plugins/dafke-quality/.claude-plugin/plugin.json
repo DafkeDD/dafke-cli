@@ -1,0 +1,6 @@
+{
+  "name": "dafke-quality",
+  "version": "0.4.0",
+  "description": "Code quality gates — linting, coverage, mutation testing, security scanning, and readiness audits",
+  "author": { "name": "Dafke Platform Engineering", "email": "platform@dafke.be" }
+}

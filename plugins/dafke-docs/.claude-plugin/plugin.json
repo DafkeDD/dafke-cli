@@ -1,0 +1,6 @@
+{
+  "name": "dafke-docs",
+  "version": "0.5.0",
+  "description": "Architecture docs, AI documentation crew, feature docs, onboarding, and help system",
+  "author": { "name": "Dafke Platform Engineering", "email": "platform@dafke.be" }
+}
