@@ -6,7 +6,6 @@
  */
 
 import type { RepoManifest, GlobalConfig } from "../config/config-schema.js";
-import type { SonarQubeClient } from "../../integrations/sonarqube/client.js";
 
 export interface AnalyzerContext {
   /** Repository root path (same as the first positional argument). */
@@ -15,8 +14,6 @@ export interface AnalyzerContext {
   manifest?: RepoManifest;
   /** User-level global config (auth, preferences). */
   globalConfig?: GlobalConfig;
-  /** Pre-configured SonarQube client, if auth is available. */
-  sonarqubeClient?: SonarQubeClient;
 }
 
 export interface DimensionResult {

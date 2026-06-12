@@ -1,4 +1,3 @@
-import { AzureDevOpsClient, type AzureDevOpsConfig } from "./azure-devops/client.js";
 import { GitHubClient, type GitHubConfig } from "./github/client.js";
 import { IntegrationError } from "../utils/errors.js";
 
@@ -8,8 +7,7 @@ export interface Repository {
   fullName: string;
   defaultBranch: string;
   cloneUrl: string;
-  provider: "azure-devops" | "github";
-  project?: string; // Azure DevOps project
+  provider: "github";
 }
 
 export interface RepositoryProvider {
@@ -19,80 +17,11 @@ export interface RepositoryProvider {
   hasBranchProtection(repoId: string, branch: string): Promise<boolean>;
 }
 
-export class AzureDevOpsRepositoryProvider implements RepositoryProvider {
-  private readonly client: AzureDevOpsClient;
-  private readonly defaultProject?: string;
-
-  constructor(
-    config: AzureDevOpsConfig,
-    private readonly project?: string,
-  ) {
-    this.client = new AzureDevOpsClient(config);
-    this.defaultProject = project;
-  }
-
-  async listRepositories(): Promise<Repository[]> {
-    const repos = await this.client.listRepositories(this.defaultProject);
-    return repos.map((repo) => ({
-      id: repo.id,
-      name: repo.name,
-      fullName: `${repo.project.name}/${repo.name}`,
-      defaultBranch: (repo.defaultBranch ?? "refs/heads/main").replace("refs/heads/", ""),
-      cloneUrl: repo.remoteUrl,
-      provider: "azure-devops" as const,
-      project: repo.project.name,
-    }));
-  }
-
-  async getRepository(id: string): Promise<Repository> {
-    if (!this.defaultProject) {
-      throw new IntegrationError(
-        "Azure DevOps project is required to get a single repository",
-        "Azure DevOps",
-        "Provide a project name in the configuration",
-      );
-    }
-    const repo = await this.client.getRepository(this.defaultProject, id);
-    return {
-      id: repo.id,
-      name: repo.name,
-      fullName: `${repo.project.name}/${repo.name}`,
-      defaultBranch: (repo.defaultBranch ?? "refs/heads/main").replace("refs/heads/", ""),
-      cloneUrl: repo.remoteUrl,
-      provider: "azure-devops",
-      project: repo.project.name,
-    };
-  }
-
-  async hasCIPipeline(_repoId: string): Promise<boolean> {
-    if (!this.defaultProject) return false;
-    try {
-      const pipelines = await this.client.getPipelines(this.defaultProject);
-      return pipelines.length > 0;
-    } catch {
-      return false;
-    }
-  }
-
-  async hasBranchProtection(_repoId: string, _branch: string): Promise<boolean> {
-    if (!this.defaultProject) return false;
-    try {
-      const policies = await this.client.getBranchPolicies(this.defaultProject);
-      return policies.some((p) => p.isEnabled);
-    } catch {
-      return false;
-    }
-  }
-}
-
 export class GitHubRepositoryProvider implements RepositoryProvider {
   private readonly client: GitHubClient;
   private readonly owner?: string;
 
-  constructor(
-    config: GitHubConfig,
-    owner?: string,
-  ) {
+  constructor(config: GitHubConfig, owner?: string) {
     this.client = new GitHubClient(config);
     this.owner = owner;
   }
@@ -158,13 +87,7 @@ export class GitHubRepositoryProvider implements RepositoryProvider {
   }
 }
 
-export type RepositoryProviderType = "azure-devops" | "github";
-
-export interface AzureDevOpsProviderConfig {
-  type: "azure-devops";
-  config: AzureDevOpsConfig;
-  project?: string;
-}
+export type RepositoryProviderType = "github";
 
 export interface GitHubProviderConfig {
   type: "github";
@@ -172,12 +95,10 @@ export interface GitHubProviderConfig {
   owner?: string;
 }
 
-export type RepositoryProviderFactoryConfig = AzureDevOpsProviderConfig | GitHubProviderConfig;
+export type RepositoryProviderFactoryConfig = GitHubProviderConfig;
 
 export function createRepositoryProvider(options: RepositoryProviderFactoryConfig): RepositoryProvider {
   switch (options.type) {
-    case "azure-devops":
-      return new AzureDevOpsRepositoryProvider(options.config, options.project);
     case "github":
       return new GitHubRepositoryProvider(options.config, options.owner);
     default: {
@@ -185,7 +106,7 @@ export function createRepositoryProvider(options: RepositoryProviderFactoryConfi
       throw new IntegrationError(
         `Unknown repository provider type: ${String((_exhaustive as RepositoryProviderFactoryConfig).type)}`,
         "RepositoryProvider",
-        "Supported types are: azure-devops, github",
+        "Supported types are: github",
       );
     }
   }

@@ -23,7 +23,7 @@ function displayReposTable(repos: Repository[]): void {
 
   for (const repo of repos) {
     const name = repo.fullName.length > 28 ? repo.fullName.slice(0, 28) + ".." : repo.fullName;
-    const provider = repo.provider === "azure-devops" ? chalk.blue("Azure DevOps") : chalk.hex("#6e5494")("GitHub");
+    const provider = chalk.hex("#6e5494")("GitHub");
     console.log(`${name.padEnd(30)} ${provider.padEnd(14)} ${repo.defaultBranch.padEnd(16)} ${chalk.dim(repo.cloneUrl)}`);
   }
 
@@ -41,11 +41,6 @@ export default defineCommand({
     description: "List accessible repos",
   },
   args: {
-    provider: {
-      type: "string",
-      description: "Provider to list repos from (azure-devops, github, all)",
-      default: "all",
-    },
     format: {
       type: "string",
       description: "Output format (json, text)",
@@ -55,58 +50,32 @@ export default defineCommand({
   async run({ args }) {
     const configManager = new ConfigManager();
     const globalConfig = await configManager.loadGlobalConfig();
-    const provider = args.provider as string;
     const format = args.format as string;
 
     const allRepos: Repository[] = [];
     const errors: string[] = [];
 
-    // Azure DevOps
-    if (provider === "azure-devops" || provider === "all") {
-      const azConfig = globalConfig.auth?.azureDevOps;
-      if (azConfig?.pat && azConfig?.orgUrl) {
-        try {
-          const azProvider = createRepositoryProvider({
-            type: "azure-devops",
-            config: { organizationUrl: azConfig.orgUrl, pat: azConfig.pat },
-          } satisfies RepositoryProviderFactoryConfig);
-          const repos = await azProvider.listRepositories();
-          allRepos.push(...repos);
-        } catch (err) {
-          errors.push(`Azure DevOps: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      } else if (provider === "azure-devops") {
-        console.log(chalk.yellow("  Azure DevOps not configured. Run `dafke connect azure-devops` first."));
-        return;
+    const ghConfig = globalConfig.auth?.github;
+    if (ghConfig?.token) {
+      try {
+        const ghProvider = createRepositoryProvider({
+          type: "github",
+          config: { token: ghConfig.token },
+        } satisfies RepositoryProviderFactoryConfig);
+        const repos = await ghProvider.listRepositories();
+        allRepos.push(...repos);
+      } catch (err) {
+        errors.push(`GitHub: ${err instanceof Error ? err.message : String(err)}`);
       }
+    } else {
+      console.log(chalk.yellow("  GitHub not configured. Run `dafke connect github` first."));
+      return;
     }
 
-    // GitHub
-    if (provider === "github" || provider === "all") {
-      const ghConfig = globalConfig.auth?.github;
-      if (ghConfig?.token) {
-        try {
-          const ghProvider = createRepositoryProvider({
-            type: "github",
-            config: { token: ghConfig.token },
-          } satisfies RepositoryProviderFactoryConfig);
-          const repos = await ghProvider.listRepositories();
-          allRepos.push(...repos);
-        } catch (err) {
-          errors.push(`GitHub: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      } else if (provider === "github") {
-        console.log(chalk.yellow("  GitHub not configured. Run `dafke connect github` first."));
-        return;
-      }
-    }
-
-    // Show errors
     for (const err of errors) {
       console.log(chalk.red(`  Error: ${err}`));
     }
 
-    // Output
     if (format === "json") {
       console.log(JSON.stringify(allRepos, null, 2));
     } else {

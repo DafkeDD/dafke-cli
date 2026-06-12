@@ -241,9 +241,6 @@ export class CoverageAnalyzer implements DimensionAnalyzer {
     try {
       const findings = await detectCoverageConfig(repoRoot);
 
-      // Enrich from SonarQube if available
-      await this.enrichFromSonarQube(context, findings);
-
       const evidence: string[] = [];
       const suggestions: string[] = [];
 
@@ -320,67 +317,6 @@ export class CoverageAnalyzer implements DimensionAnalyzer {
         `Failed to analyze code coverage: ${error instanceof Error ? error.message : String(error)}`,
         this.dimension,
       );
-    }
-  }
-
-  private async enrichFromSonarQube(
-    context: AnalyzerContext | undefined,
-    findings: CoverageFindings,
-  ): Promise<void> {
-    if (!context?.sonarqubeClient) return;
-
-    // Determine project key: manifest > sonar-project.properties
-    const manifestKey = context.manifest?.externalTools?.coverage?.sonarProjectKey;
-    let projectKey = manifestKey;
-
-    if (!projectKey) {
-      // Try auto-detect from sonar-project.properties
-      const propsContent = await readFileIfExists(join(context.repoRoot, "sonar-project.properties"));
-      if (propsContent) {
-        const match = propsContent.match(/sonar\.projectKey\s*=\s*(.+)/);
-        if (match?.[1]) {
-          projectKey = match[1].trim();
-        }
-      }
-    }
-
-    if (!projectKey) return;
-
-    try {
-      const measures = await context.sonarqubeClient.getMeasures(projectKey, [
-        "coverage",
-        "line_coverage",
-        "branch_coverage",
-      ]);
-
-      const coverageMeasure = measures.component.measures.find(
-        (m) => m.metric === "coverage",
-      );
-      if (coverageMeasure?.value) {
-        const pct = parseFloat(coverageMeasure.value);
-        if (!isNaN(pct)) {
-          findings.detectedPercentage = pct;
-          findings.hasCoverageConfig = true;
-          findings.hasCoverageReports = true;
-          findings.configSources.push(
-            `SonarQube reports ${pct.toFixed(1)}% coverage (project: ${projectKey})`,
-          );
-        }
-      }
-
-      // Check quality gate for enforcement
-      const gate = await context.sonarqubeClient.getQualityGate(projectKey);
-      if (gate.projectStatus.status !== "NONE") {
-        const hasCoverageCondition = gate.projectStatus.conditions.some(
-          (c) => c.metricKey.includes("coverage"),
-        );
-        if (hasCoverageCondition) {
-          findings.hasEnforcement = true;
-          findings.configSources.push("SonarQube quality gate enforces coverage threshold");
-        }
-      }
-    } catch {
-      // SonarQube unreachable — skip enrichment silently
     }
   }
 }

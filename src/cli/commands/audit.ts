@@ -9,7 +9,6 @@ import { SecurityAnalyzer } from "../../core/analyzer/security-analyzer.js";
 import { ReviewAnalyzer } from "../../core/analyzer/review-analyzer.js";
 import { DoraAnalyzer } from "../../core/analyzer/dora-analyzer.js";
 import { DocsAnalyzer } from "../../core/analyzer/docs-analyzer.js";
-import { SonarQubeClient } from "../../integrations/sonarqube/client.js";
 import type { AnalyzerContext } from "../../core/analyzer/dimension-analyzer.js";
 import type { AssessmentResult } from "../../core/analyzer/assessment-engine.js";
 import type { ReadinessScores } from "../../core/config/config-schema.js";
@@ -223,20 +222,10 @@ export default defineCommand({
     // Build analyzer context from config + manifest
     const globalConfig = await configManager.loadGlobalConfig();
 
-    let sonarqubeClient: SonarQubeClient | undefined;
-    const sqAuth = globalConfig?.auth?.sonarqube;
-    if (sqAuth?.token && sqAuth?.serverUrl) {
-      sonarqubeClient = new SonarQubeClient({
-        baseUrl: sqAuth.serverUrl,
-        token: sqAuth.token,
-      });
-    }
-
     const analyzerContext: AnalyzerContext = {
       repoRoot,
       manifest: manifest ?? undefined,
       globalConfig: globalConfig ?? undefined,
-      sonarqubeClient,
     };
 
     // Load rules for threshold customization

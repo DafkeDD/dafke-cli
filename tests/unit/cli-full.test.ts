@@ -316,169 +316,6 @@ describe("hook command (full)", () => {
   });
 });
 
-// ===========================================================================
-// connect command
-// ===========================================================================
-
-describe("connect command (full)", () => {
-  beforeEach(() => {
-    vi.spyOn(console, "log").mockImplementation(() => {
-      /* noop */
-    });
-    vi.spyOn(console, "error").mockImplementation(() => {
-      /* noop */
-    });
-  });
-
-  function mockConnectDeps(overrides: {
-    testConnection?: () => Promise<boolean>;
-    isCancel?: (v: unknown) => boolean;
-    password?: () => unknown;
-    text?: () => unknown;
-    select?: () => unknown;
-  } = {}) {
-    vi.doMock("@clack/prompts", () => ({
-      intro: vi.fn(),
-      outro: vi.fn(),
-      text: vi.fn(overrides.text ?? (() => "https://dev.azure.com/org")),
-      password: vi.fn(overrides.password ?? (() => "valid-pat")),
-      spinner: vi.fn(() => ({ start: vi.fn(), stop: vi.fn() })),
-      select: vi.fn(overrides.select ?? (() => "azure-devops")),
-      log: {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-        success: vi.fn(),
-        message: vi.fn(),
-      },
-      isCancel: vi.fn(overrides.isCancel ?? (() => false)),
-    }));
-
-    vi.doMock("../../src/core/config/config-manager.js", () => ({
-      ConfigManager: class {
-        async loadGlobalConfig() {
-          return { version: "1.0.0", auth: {}, preferences: {} };
-        }
-        async saveGlobalConfig() {
-          /* noop */
-        }
-      },
-    }));
-
-    const tc = overrides.testConnection ?? (async () => true);
-    vi.doMock("../../src/integrations/azure-devops/client.js", () => ({
-      AzureDevOpsClient: class {
-        testConnection = tc;
-      },
-    }));
-    vi.doMock("../../src/integrations/github/client.js", () => ({
-      GitHubClient: class {
-        testConnection = tc;
-      },
-    }));
-    vi.doMock("../../src/integrations/jira/client.js", () => ({
-      JiraClient: class {
-        testConnection = tc;
-      },
-    }));
-    vi.doMock("../../src/integrations/confluence/client.js", () => ({
-      ConfluenceClient: class {
-        testConnection = tc;
-      },
-    }));
-  }
-
-  it("module exports correct meta", async () => {
-    vi.resetModules();
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    expect(cmd.meta?.name).toBe("connect");
-    expect(cmd.args).toHaveProperty("service");
-  });
-
-  it("connects to Azure DevOps", async () => {
-    vi.resetModules();
-    mockConnectDeps();
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "azure-devops" } });
-  });
-
-  it("handles failed Azure DevOps connection", async () => {
-    vi.resetModules();
-    mockConnectDeps({ testConnection: async () => false });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "azure-devops" } });
-  });
-
-  it("connects to GitHub", async () => {
-    vi.resetModules();
-    mockConnectDeps({ password: () => "ghp_token" });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "github" } });
-  });
-
-  it("connects to Jira", async () => {
-    vi.resetModules();
-    let n = 0;
-    mockConnectDeps({
-      text: () => {
-        n++;
-        return n === 1 ? "https://site.atlassian.net" : "user@test.com";
-      },
-      password: () => "api-token",
-    });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "jira" } });
-  });
-
-  it("connects to Confluence", async () => {
-    vi.resetModules();
-    let n = 0;
-    mockConnectDeps({
-      text: () => {
-        n++;
-        return n === 1 ? "https://site.atlassian.net" : "user@test.com";
-      },
-      password: () => "api-token",
-    });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "confluence" } });
-  });
-
-  it("shows interactive selection when no service", async () => {
-    vi.resetModules();
-    mockConnectDeps({ select: () => "azure-devops" });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: undefined } });
-  });
-
-  it("handles cancel during selection", async () => {
-    vi.resetModules();
-    mockConnectDeps({
-      select: () => Symbol.for("cancel"),
-      isCancel: (v: unknown) => typeof v === "symbol",
-    });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: undefined } });
-  });
-
-  it("handles cancel during GitHub token", async () => {
-    vi.resetModules();
-    mockConnectDeps({
-      password: () => Symbol.for("cancel"),
-      isCancel: (v: unknown) => typeof v === "symbol",
-    });
-    const { default: cmd } = await import("../../src/cli/commands/connect.js");
-    // @ts-expect-error - internal
-    await cmd.run({ args: { service: "github" } });
-  });
-});
 
 // ===========================================================================
 // update command
@@ -1279,9 +1116,6 @@ describe("audit command (full)", () => {
         }
       },
     }));
-    vi.doMock("../../src/integrations/sonarqube/client.js", () => ({
-      SonarQubeClient: vi.fn(),
-    }));
 
     vi.doMock("../../src/core/analyzer/assessment-engine.js", () => ({
       AssessmentEngine: class {
@@ -1490,9 +1324,6 @@ describe("audit command (full)", () => {
           return null;
         }
       },
-    }));
-    vi.doMock("../../src/integrations/sonarqube/client.js", () => ({
-      SonarQubeClient: vi.fn(),
     }));
     vi.doMock("../../src/core/analyzer/assessment-engine.js", () => ({
       AssessmentEngine: class {

@@ -56,3 +56,17 @@ Volledige doorlichting uitgevoerd. Bevindingen:
 - **Distributie**: README + user-manual install-instructies wijzen niet meer naar een privé Azure-feed; installatie gebeurt lokaal vanuit deze repo. `.npmrc` = publieke npmjs.
 
 > Restant: `dev.azure.com`-vermeldingen in `docs/` zijn nog louter documentatie/voorbeelden van de **dormante** Azure-integratie (sturen niets door). Ze verdwijnen samen met de dormante integratie-code (zie hierboven).
+
+## Update — dormante integratie-code verwijderd
+
+De Azure DevOps / Jira / Confluence / SonarQube **clientcode is nu volledig weg** uit `src/`:
+
+- Verwijderd: `src/integrations/{azure-devops,jira,confluence,sonarqube}/`, `src/core/confluence/`.
+- Behouden (geen netwerk): `src/utils/ado-helpers.ts` (pure URL-parser) en de optionele `auth.*`-velden in `config-schema.ts` (onschuldige config-slots, geen connectie).
+- GitHub-only gemaakt: `repository-provider.ts`, `repos.ts`, `connect.ts`, `step-auth.ts`, `step-connect.ts`; Sonar-verrijking uit `audit.ts` / `dimension-analyzer.ts` / `coverage-analyzer.ts`.
+- Verwijderde/opgeschoonde tests: `confluence-client`, `integrations`, `repository-provider`, `connect-command`, `wizard-steps-full` (obsoleet), plus de connect-/sonar-blokken uit `cli-full.test.ts`.
+- `src/`-scan: geen enkele verwijzing meer naar de verwijderde modules. `tsconfig.json` sluit `tests/` uit van `tsc`, dus `npm run typecheck` valideert de bron.
+
+Kleine rest (geen connectie, dode code): `step-hooks.ts` bevat nog gated Azure-DevOps-MCP-registratie die nooit getriggerd wordt (auth.azureDevOps wordt niet meer gezet). Mag later weg.
+
+> De `qs`/`typed-rest-client`-vulnerability komt **niet** van deze clients (die waren fetch-based) maar is transitief. Check de bron met `npm ls typed-rest-client`.
