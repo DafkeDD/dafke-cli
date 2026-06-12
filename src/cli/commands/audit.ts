@@ -61,7 +61,7 @@ function waveLabel(wave: string): string {
 
 function displayTextFormat(result: AssessmentResult): void {
   console.log();
-  console.log(chalk.bold.hex("#6366f1")("  Readiness Assessment Results"));
+  console.log(chalk.bold.hex("#f76707")("  Readiness Assessment Results"));
   console.log(chalk.dim("  " + "─".repeat(50)));
   console.log();
 
@@ -134,7 +134,7 @@ function displayDimensionDetail(result: AssessmentResult, dimension: string): vo
   const score = result.scores[key];
 
   console.log();
-  console.log(chalk.bold.hex("#6366f1")(`  ${DIMENSION_LABELS[dimension] ?? dimension} — Detailed Report`));
+  console.log(chalk.bold.hex("#f76707")(`  ${DIMENSION_LABELS[dimension] ?? dimension} — Detailed Report`));
   console.log(chalk.dim("  " + "─".repeat(50)));
   console.log();
   console.log(`  ${chalk.bold("Score:")} ${scoreColor(score ?? 0)(`${score}/5`)}  ${scoreBar(score ?? 0)}`);

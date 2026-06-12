@@ -9,15 +9,16 @@ const LOGO = `
   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝`;
 
 const TAGLINE = "AI Control Center";
+const ACCENT = "#f76707";
 
 export function printBanner(version: string): void {
   const gradient = [
-    chalk.hex("#6366f1"),  // indigo
-    chalk.hex("#818cf8"),
-    chalk.hex("#a5b4fc"),
-    chalk.hex("#c7d2fe"),
-    chalk.hex("#818cf8"),
-    chalk.hex("#6366f1"),
+    chalk.hex("#d9480f"),  // deep orange
+    chalk.hex("#e8590c"),
+    chalk.hex("#f76707"),
+    chalk.hex("#ff922b"),
+    chalk.hex("#e8590c"),
+    chalk.hex("#d9480f"),
   ];
 
   const lines = LOGO.split("\n").filter((l) => l.length > 0);
@@ -30,7 +31,7 @@ export function printBanner(version: string): void {
   console.log(coloredLines.join("\n"));
   console.log();
   console.log(
-    `  ${chalk.bold.hex("#6366f1")(TAGLINE)}  ${chalk.dim(`v${version}`)}`,
+    `  ${chalk.bold.hex(ACCENT)(TAGLINE)}  ${chalk.dim(`v${version}`)}`,
   );
   console.log(
     `  ${chalk.dim("─".repeat(50))}`,
@@ -40,6 +41,6 @@ export function printBanner(version: string): void {
 
 export function printCompactBanner(version: string): void {
   console.log(
-    `${chalk.bold.hex("#6366f1")("◆ Dafke")} ${chalk.hex("#818cf8")(TAGLINE)} ${chalk.dim(`v${version}`)}`,
+    `${chalk.bold.hex(ACCENT)("◆ Dafke")} ${chalk.hex("#ff922b")(TAGLINE)} ${chalk.dim(`v${version}`)}`,
   );
 }

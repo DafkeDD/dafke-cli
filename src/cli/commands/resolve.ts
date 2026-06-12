@@ -29,7 +29,7 @@ function displayTextReport(report: ResolveReport, dryRun: boolean): void {
   if (dryRun) {
     console.log(chalk.cyan.bold("  [DRY RUN] Resolve Preview"));
   } else {
-    console.log(chalk.bold.hex("#6366f1")("  Resolve Results"));
+    console.log(chalk.bold.hex("#f76707")("  Resolve Results"));
   }
   console.log(chalk.dim("  " + "─".repeat(50)));
   console.log();

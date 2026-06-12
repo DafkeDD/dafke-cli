@@ -681,7 +681,7 @@ export default defineCommand({
     const hasDocsPlugin = existsSync(join(repoRoot, ".claude", "agents", "docs-code-analyst.md"));
 
     console.log();
-    console.log(chalk.bold.hex("#6366f1")("  Architecture Documentation Scaffolding"));
+    console.log(chalk.bold.hex("#f76707")("  Architecture Documentation Scaffolding"));
     console.log(chalk.dim("  " + "─".repeat(50)));
     console.log(chalk.dim("  Scaffolds baseline docs from code analysis tools."));
     console.log(chalk.dim("  Module stubs and diagrams — not AI-verified content."));
@@ -897,10 +897,10 @@ export default defineCommand({
     console.log(chalk.dim("  Incremental: ") + chalk.bold("dafke docs --update"));
     console.log();
     if (hasDocsPlugin) {
-      console.log(chalk.bold.hex("#6366f1")("  Next step: ") + chalk.bold("/dafke-docs-generate") + chalk.dim(" in Claude Code"));
+      console.log(chalk.bold.hex("#f76707")("  Next step: ") + chalk.bold("/dafke-docs-generate") + chalk.dim(" in Claude Code"));
       console.log(chalk.dim("  The AI crew will replace these stubs with source-code-verified documentation."));
     } else {
-      console.log(chalk.bold.hex("#6366f1")("  Want AI-powered documentation?"));
+      console.log(chalk.bold.hex("#f76707")("  Want AI-powered documentation?"));
       console.log(chalk.bold("  dafke plugin install dafke-docs"));
       console.log(chalk.dim("  Then run /dafke-docs-generate in Claude Code to produce"));
       console.log(chalk.dim("  source-code-verified, quality-reviewed documentation."));

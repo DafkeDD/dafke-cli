@@ -64,7 +64,7 @@ export default defineCommand({
     const force = args.force as boolean;
 
     console.log();
-    console.log(chalk.bold.hex("#6366f1")("  Dafke Update"));
+    console.log(chalk.bold.hex("#f76707")("  Dafke Update"));
     console.log(chalk.dim("  " + "─".repeat(50)));
     console.log();
 

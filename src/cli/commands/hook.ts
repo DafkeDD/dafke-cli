@@ -333,7 +333,7 @@ async function handleList(): Promise<void> {
   const repoRoot = process.cwd();
 
   console.log();
-  console.log(chalk.bold.hex("#6366f1")("  Configured Hooks"));
+  console.log(chalk.bold.hex("#f76707")("  Configured Hooks"));
   console.log(chalk.dim("  " + "─".repeat(60)));
 
   // Claude Code hooks (.claude/settings.json)

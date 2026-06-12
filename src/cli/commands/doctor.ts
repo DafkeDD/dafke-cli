@@ -324,7 +324,7 @@ export default defineCommand({
     const fix = args.fix as boolean;
 
     console.log();
-    console.log(chalk.bold.hex("#6366f1")("  Dafke Doctor"));
+    console.log(chalk.bold.hex("#f76707")("  Dafke Doctor"));
     console.log(chalk.dim("  " + "─".repeat(50)));
     console.log();
 

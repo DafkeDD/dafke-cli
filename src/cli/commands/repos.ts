@@ -80,7 +80,7 @@ export default defineCommand({
       console.log(JSON.stringify(allRepos, null, 2));
     } else {
       console.log();
-      console.log(chalk.bold.hex("#6366f1")("  Repositories"));
+      console.log(chalk.bold.hex("#f76707")("  Repositories"));
       console.log(chalk.dim("  " + "─".repeat(50)));
       console.log();
       displayReposTable(allRepos);
