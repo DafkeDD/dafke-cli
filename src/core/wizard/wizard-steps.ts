@@ -10,36 +10,22 @@
  */
 
 export const WIZARD_STEPS = [
-  "auth",
   "detect",
-  "assess",
-  "external_tools",
   "claude_md",
   "rules",
   "hooks",
   "plugins",
-  "ci",
-  "coverage",
-  "arch",
-  "connect",
   "verify",
 ] as const;
 
 export type WizardStepId = (typeof WIZARD_STEPS)[number];
 
 export const STEP_LABELS: Record<WizardStepId, string> = {
-  auth: "Authentication & Providers",
   detect: "Repository Detection",
-  assess: "Readiness Assessment",
-  external_tools: "External Tools",
   claude_md: "CLAUDE.md Generation",
   rules: "Instruction Rules",
   hooks: "Hooks & Settings",
   plugins: "Plugin Installation",
-  ci: "CI/CD Hardening",
-  coverage: "Test Coverage Analysis",
-  arch: "Architecture Documentation",
-  connect: "Project Board Connection",
   verify: "Verification & Summary",
 };
 

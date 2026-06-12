@@ -108,10 +108,7 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
   const confirmed = await p.select({
     message: "Confirm detected tech stack (or override):",
     options: [
-      ...(bestMatch !== "unknown" ? [{ value: bestMatch, label: `${TECH_LABELS[bestMatch]} (detected)`, hint: "recommended" }] : []),
-      ...Object.entries(TECH_LABELS)
-        .filter(([key]) => key !== bestMatch && key !== "unknown")
-        .map(([value, label]) => ({ value, label })),
+      { value: "typescript", label: "TypeScript / Node.js", hint: "recommended" },
       { value: "unknown", label: "Other / Skip" },
     ],
   });

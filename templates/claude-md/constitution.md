@@ -8,7 +8,7 @@
 
 ### Planning & Impact Analysis
 - **ALWAYS use plan mode before executing changes** on a codebase. Even "simple" fixes can cascade.
-- **ALWAYS analyse the impact of your changes** before finalizing plans — use GitNexus `impact` or equivalent blast radius analysis.
+- **ALWAYS analyse the impact of your changes** before finalizing plans — analyse the blast radius of your changes before finalizing plans.
 - **ALWAYS propose enhancements and improvements** to the user before finalizing plans — ask before integrating them.
 - Before writing code, generate an **enhanced prompt** from user input: clarify intent, add relevant context, inject applicable rules.
 

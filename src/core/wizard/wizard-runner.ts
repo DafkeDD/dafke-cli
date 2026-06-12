@@ -40,18 +40,11 @@ export class WizardRunner {
 
     // Lazy-load step executors so unused steps never get imported
     this.stepLoaders = new Map<WizardStepId, StepLoader>([
-      ["auth", () => import("./steps/step-auth.js")],
       ["detect", () => import("./steps/step-detect.js")],
-      ["assess", () => import("./steps/step-assess.js")],
-      ["external_tools", () => import("./steps/step-external-tools.js")],
       ["claude_md", () => import("./steps/step-claude-md.js")],
       ["rules", () => import("./steps/step-rules.js")],
       ["hooks", () => import("./steps/step-hooks.js")],
       ["plugins", () => import("./steps/step-plugins.js")],
-      ["ci", () => import("./steps/step-ci.js")],
-      ["coverage", () => import("./steps/step-coverage.js")],
-      ["arch", () => import("./steps/step-arch.js")],
-      ["connect", () => import("./steps/step-connect.js")],
       ["verify", () => import("./steps/step-verify.js")],
     ]);
   }

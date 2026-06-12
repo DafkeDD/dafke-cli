@@ -165,7 +165,7 @@ export class CicdAnalyzer implements DimensionAnalyzer {
           details: "No CI/CD pipeline configuration found.",
           evidence: ["No pipeline files detected in standard locations."],
           suggestions: [
-            "Add a CI pipeline (e.g. .github/workflows/ci.yml or azure-pipelines.yml).",
+            "Add a GitHub Actions CI pipeline (.github/workflows/ci.yml).",
             "Start with a basic build + test workflow.",
           ],
         };
