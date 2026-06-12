@@ -6,6 +6,7 @@ import { z } from "zod";
 
 export const TechStackSchema = z.enum([
   "typescript",
+  "lua",
   "java",
   "dotnet",
   "python",

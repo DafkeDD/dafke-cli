@@ -124,10 +124,7 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
   p.log.message(chalk.dim("  " + "\u2500".repeat(44)));
   p.log.message(`  ${icon(summary.claudeMd)} CLAUDE.md generated`);
   p.log.message(`  ${icon(summary.hooks)} Hooks & settings installed`);
-  p.log.message(`  ${icon(summary.plugins > 0)} Plugins installed (${summary.plugins})`);
-  p.log.message(`  ${icon(summary.ciGenerated)} CI/CD template generated`);
-  p.log.message(`  ${icon(summary.boardConnected)} Project board connected`);
-  p.log.message(`  ${icon(summary.skills > 0)} Skills & agents (${summary.skills} files)`);
+  p.log.message(`  ${icon(summary.plugins > 0)} Dafke plugins installed (${summary.plugins})`);
   p.log.message(chalk.dim("  " + "\u2500".repeat(44)));
   p.log.message(`  Wave: ${chalk.bold(summary.wave.toUpperCase())}  Score: ${chalk.bold(`${summary.totalScore}/30`)}`);
 
@@ -147,10 +144,9 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
 
   // Next steps
   const nextSteps: string[] = [];
-  if (!summary.claudeMd) nextSteps.push("Generate CLAUDE.md with: dafke init --skip auth,detect");
+  if (!summary.claudeMd) nextSteps.push("Generate CLAUDE.md with: dafke init");
   if (!summary.hooks) nextSteps.push("Install hooks with: dafke hook install");
   if (summary.totalScore < 20) nextSteps.push("Improve readiness scores: run dafke audit for details");
-  if (!summary.boardConnected) nextSteps.push("Connect project board: dafke connect");
 
   if (nextSteps.length > 0) {
     p.log.message(chalk.bold("\n  Next Steps"));

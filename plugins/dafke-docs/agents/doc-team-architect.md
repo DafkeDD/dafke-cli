@@ -18,7 +18,7 @@ Produce a complete `docs/ARCHITECTURE.md` that a new team member or an AI agent 
 
 ## Process
 
-1. **Read GitNexus context first** — use `gitnexus://repo/{name}/context` for stats, `gitnexus://repo/{name}/clusters` for functional areas, `gitnexus://repo/{name}/processes` for execution flows.
+1. **Read codebase analysis context first** — use `codebase analysis://repo/{name}/context` for stats, `codebase analysis://repo/{name}/clusters` for functional areas, `codebase analysis://repo/{name}/processes` for execution flows.
 
 2. **Identify the architecture layers**:
    - Entry points (CLI commands, API endpoints, UI forms)
@@ -91,6 +91,5 @@ Write everything to `docs/ARCHITECTURE.md`. Use Mermaid for ALL diagrams. Includ
 ## Constraints
 
 - Read code, don't guess. Every claim must be traceable to a file.
-- Use GitNexus MCP tools before grepping — it's faster and more accurate.
 - Mermaid diagrams must render correctly (test syntax).
 - Don't include implementation details that change frequently — focus on stable architectural boundaries.

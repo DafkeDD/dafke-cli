@@ -33,7 +33,6 @@
 |------|----------|
 | Understand architecture before editing | Read [ARCHITECTURE.md](ARCHITECTURE.md) first |
 | Find relevant module for a change | Check this INDEX.md routing table |
-| Assess impact of a change | Use GitNexus `gitnexus_impact()` |
 | Understand execution flows | Read [ARCHITECTURE.md §Data Flows](ARCHITECTURE.md#data-flows) |
 | Check dependency coupling | Read [ARCHITECTURE.md §Dependencies](ARCHITECTURE.md#dependencies) |
 

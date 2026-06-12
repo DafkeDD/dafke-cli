@@ -4,7 +4,7 @@ import { WizardRunner } from "../../core/wizard/wizard-runner.js";
 import { WIZARD_STEPS } from "../../core/wizard/wizard-steps.js";
 import { isClaudeAvailable } from "../../utils/claude-cli.js";
 
-const VALID_TECH_STACKS = ["typescript"] as const;
+const VALID_TECH_STACKS = ["typescript", "lua"] as const;
 
 export default defineCommand({
   meta: {

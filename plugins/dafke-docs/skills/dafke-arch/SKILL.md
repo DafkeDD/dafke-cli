@@ -2,7 +2,7 @@
 name: dafke-arch
 description: Use when the user wants to generate architecture documentation, create diagrams, or document the codebase structure
 category: docs
-argument-hint: "[--skip gitnexus,graphify,typedoc,deps] [--update]"
+argument-hint: "[--skip codebase analysis,graphify,typedoc,deps] [--update]"
 allowed-tools:
   - Bash
   - Read
@@ -26,7 +26,7 @@ docs/
   modules/*.md             — Per-module deep dives with API, dependencies, usage examples
   diagrams/*.mmd           — Mermaid source files (version-controlled, diffable)
   api/                     — TypeScript API reference (TypeDoc) — TS projects only
-.gitnexus/wiki/            — GitNexus-generated module wiki pages
+.codebase analysis/wiki/            — codebase analysis-generated module wiki pages
 graphify-out/              — Interactive knowledge graph visualization
 ```
 
@@ -51,7 +51,7 @@ dafke docs --format json
 
 ## Documentation Pipeline (5 Layers)
 
-### Layer 1: GitNexus — Code Intelligence Foundation
+### Layer 1: codebase analysis — Code Intelligence Foundation
 - Indexes the full codebase into a knowledge graph
 - Generates per-module wiki pages (requires LLM API key)
 - Provides: symbol count, relationship count, cluster count, execution flows
@@ -86,14 +86,13 @@ The documentation is produced by 4 specialized agents in the dafke-docs plugin:
 | Agent | Role |
 |-------|------|
 | `doc-team-architect` | Architecture analysis, Mermaid C4 diagrams |
-| `doc-team-module-documenter` | Per-module documentation from GitNexus clusters |
+| `doc-team-module-documenter` | Per-module documentation from codebase analysis clusters |
 | `doc-team-dependency-mapper` | Dependency graphs, coupling metrics, risk |
 | `doc-team-index-builder` | Routing table, CLAUDE.md/README updates |
 
 ## Keeping Docs Fresh
 
 - **SessionStart hook**: warns if `ARCHITECTURE.md` is >7 days old
-- **PostToolUse hook**: GitNexus auto-reindexes after `git commit`/`git merge`
 - **Pre-PR**: include `dafke docs` in your CI pipeline
 - **Periodic**: run `dafke docs --update` weekly or after major refactoring
 

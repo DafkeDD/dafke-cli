@@ -1,9 +1,12 @@
 /**
- * Step 6: Plugin Installation
+ * Step 5: Plugin Installation
  *
- * Installs recommended Claude Code plugins from the official marketplace.
- * Detects which plugins are already installed and only installs missing ones.
- * Prioritizes plugins based on readiness scores from the assessment step.
+ * Installs:
+ *   1. Dafke plugins from the local Dafke marketplace (this package).
+ *   2. Recommended plugins from Anthropic's official marketplace
+ *      (claude-plugins-official) — superpowers, commit-commands, etc.
+ *
+ * Both marketplaces are registered first (idempotent).
  */
 
 import * as p from "@clack/prompts";
@@ -12,123 +15,37 @@ import { resolve } from "node:path";
 import type { WizardStepContext, WizardStepResult } from "../wizard-steps.js";
 import { isClaudeAvailable } from "../../../utils/claude-cli.js";
 import { findProjectRoot } from "../../../utils/package-root.js";
+import { DAFKE_PLUGIN_NAMES, DAFKE_MARKETPLACE_NAME } from "../../plugins/catalogue.js";
 
 // ---------------------------------------------------------------------------
-// Types
+// Official Anthropic marketplace
 // ---------------------------------------------------------------------------
 
-/** A relevance rule that triggers contextual reasoning based on assessment scores. */
-interface RelevanceRule {
-  condition: "low-score";
-  dimension: string;
-  threshold: number;
-  reason: string;
-}
+const OFFICIAL_MARKETPLACE = "claude-plugins-official";
+const OFFICIAL_MARKETPLACE_SOURCE = "anthropics/claude-plugins-official";
 
-/** Plugin recommendation with priority level and optional relevance rules. */
 export interface PluginRecommendation {
   name: string;
   marketplace: string;
   description: string;
   priority: "essential" | "recommended" | "useful";
-  relevanceRules?: RelevanceRule[];
 }
 
-// ---------------------------------------------------------------------------
-// Plugin catalogue
-// ---------------------------------------------------------------------------
-
-import { DAFKE_PLUGIN_NAMES, DAFKE_MARKETPLACE_NAME } from "../../plugins/catalogue.js";
-
-/** Plugins from the claude-plugins-official marketplace, ordered by priority. */
+/** Recommended plugins from the official Anthropic marketplace, by priority. */
 export const RECOMMENDED_PLUGINS: PluginRecommendation[] = [
-  {
-    name: "superpowers",
-    marketplace: "claude-plugins-official",
-    description: "Planning, debugging, TDD workflows",
-    priority: "essential",
-    relevanceRules: [
-      { condition: "low-score", dimension: "review", threshold: 3, reason: "TDD workflows strengthen code review" },
-    ],
-  },
-  {
-    name: "commit-commands",
-    marketplace: "claude-plugins-official",
-    description: "Git commit, push, PR automation",
-    priority: "essential",
-  },
-  {
-    name: "claude-md-management",
-    marketplace: "claude-plugins-official",
-    description: "CLAUDE.md management",
-    priority: "essential",
-  },
-  {
-    name: "code-simplifier",
-    marketplace: "claude-plugins-official",
-    description: "Code quality and refactoring",
-    priority: "recommended",
-    relevanceRules: [
-      { condition: "low-score", dimension: "review", threshold: 4, reason: "helps enforce code quality standards" },
-    ],
-  },
-  {
-    name: "feature-dev",
-    marketplace: "claude-plugins-official",
-    description: "Guided feature development",
-    priority: "recommended",
-    relevanceRules: [
-      { condition: "low-score", dimension: "coverage", threshold: 3, reason: "guided development enforces test writing" },
-    ],
-  },
-  {
-    name: "context7",
-    marketplace: "claude-plugins-official",
-    description: "Library documentation lookup",
-    priority: "useful",
-  },
-  {
-    name: "skill-creator",
-    marketplace: "claude-plugins-official",
-    description: "Create and manage skills",
-    priority: "useful",
-  },
+  { name: "superpowers", marketplace: OFFICIAL_MARKETPLACE, description: "Planning, debugging, TDD workflows", priority: "essential" },
+  { name: "commit-commands", marketplace: OFFICIAL_MARKETPLACE, description: "Git commit, push, PR automation", priority: "essential" },
+  { name: "claude-md-management", marketplace: OFFICIAL_MARKETPLACE, description: "CLAUDE.md management", priority: "essential" },
+  { name: "code-simplifier", marketplace: OFFICIAL_MARKETPLACE, description: "Code quality and refactoring", priority: "recommended" },
+  { name: "feature-dev", marketplace: OFFICIAL_MARKETPLACE, description: "Guided feature development", priority: "recommended" },
+  { name: "context7", marketplace: OFFICIAL_MARKETPLACE, description: "Library documentation lookup", priority: "useful" },
+  { name: "skill-creator", marketplace: OFFICIAL_MARKETPLACE, description: "Create and manage skills", priority: "useful" },
 ];
-
-// ---------------------------------------------------------------------------
-// Pure functions (exported for testing)
-// ---------------------------------------------------------------------------
 
 const PRIORITY_ORDER: Record<string, number> = { essential: 0, recommended: 1, useful: 2 };
 
-/**
- * Sort plugins by priority: essential first, then recommended, then useful.
- */
-export function prioritizePlugins(
-  plugins: PluginRecommendation[],
-  _scores: Record<string, number> | undefined,
-): PluginRecommendation[] {
-  return [...plugins].sort((a, b) => {
-    return (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2);
-  });
-}
-
-/**
- * Evaluate relevance rules against assessment scores and return matching reasons.
- */
-export function getPluginReasons(
-  plugin: PluginRecommendation,
-  scores: Record<string, number> | undefined,
-): string[] {
-  if (!scores || !plugin.relevanceRules) return [];
-  const reasons: string[] = [];
-  for (const rule of plugin.relevanceRules) {
-    const score = scores[rule.dimension];
-    if (score !== undefined && score < rule.threshold) {
-      reasons.push(rule.reason);
-    }
-  }
-  return reasons;
+export function prioritizePlugins(plugins: PluginRecommendation[]): PluginRecommendation[] {
+  return [...plugins].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +62,6 @@ async function getInstalledPlugins(): Promise<InstalledPlugin[]> {
     const result = await execa("claude", ["plugin", "list"], { timeout: 15_000 });
     const lines = result.stdout.split("\n");
     const plugins: InstalledPlugin[] = [];
-
     for (const line of lines) {
       // Format: "  ❯ plugin-name@marketplace"
       const match = line.match(/❯\s+(\S+)@(\S+)/);
@@ -153,11 +69,26 @@ async function getInstalledPlugins(): Promise<InstalledPlugin[]> {
         plugins.push({ name: match[1], marketplace: match[2] });
       }
     }
-
     return plugins;
   } catch (err) {
     console.error(`dafke: failed to list plugins: ${err instanceof Error ? err.message : String(err)}`);
     return [];
+  }
+}
+
+/** Add a marketplace if it isn't already registered. Returns true when ready. */
+async function ensureMarketplace(name: string, source: string): Promise<boolean> {
+  try {
+    const { stdout } = await execa("claude", ["plugin", "marketplace", "list"], { timeout: 15_000 });
+    if (stdout.includes(name)) return true;
+    p.log.info(`Adding ${name} marketplace...`);
+    await execa("claude", ["plugin", "marketplace", "add", source, "--scope", "project"], { timeout: 30_000 });
+    p.log.success(`${name} marketplace added`);
+    return true;
+  } catch (err) {
+    p.log.warn(`Could not add ${name} marketplace: ${err instanceof Error ? err.message : String(err)}`);
+    p.log.info(`Add it manually: claude plugin marketplace add ${source}`);
+    return false;
   }
 }
 
@@ -171,38 +102,26 @@ async function installPlugin(name: string, marketplace: string): Promise<boolean
   }
 }
 
-/** Group label for each priority tier. */
-const GROUP_LABELS: Record<string, string> = {
-  essential: "Essential plugins:",
-  recommended: "Recommended for your project:",
-  useful: "Additional plugins:",
-};
-
-/**
- * Display plugins grouped by priority with contextual reasons from scores.
- */
-function displayGroupedPlugins(
-  plugins: PluginRecommendation[],
-  scores: Record<string, number> | undefined,
-): void {
-  const groups = new Map<string, PluginRecommendation[]>();
-  for (const plugin of plugins) {
-    const list = groups.get(plugin.priority) ?? [];
-    list.push(plugin);
-    groups.set(plugin.priority, list);
-  }
-
-  for (const tier of ["essential", "recommended", "useful"]) {
-    const group = groups.get(tier);
-    if (!group || group.length === 0) continue;
-
-    p.log.info(GROUP_LABELS[tier] ?? `${tier}:`);
-    for (const plugin of group) {
-      const reasons = getPluginReasons(plugin, scores);
-      const reasonSuffix = reasons.length > 0 ? ` (${reasons.join("; ")})` : "";
-      p.log.message(`  ${plugin.name} — ${plugin.description}${reasonSuffix}`);
+async function installGroup(
+  items: { name: string; marketplace: string }[],
+  installedNames: Set<string>,
+): Promise<{ installed: number; failures: string[] }> {
+  let installed = 0;
+  const failures: string[] = [];
+  for (const item of items) {
+    if (installedNames.has(item.name)) continue;
+    const s = p.spinner();
+    s.start(`Installing ${item.name}...`);
+    const ok = await installPlugin(item.name, item.marketplace);
+    if (ok) {
+      installed++;
+      s.stop(`${item.name}: installed`);
+    } else {
+      s.stop(`${item.name}: failed`);
+      failures.push(item.name);
     }
   }
+  return { installed, failures };
 }
 
 // ---------------------------------------------------------------------------
@@ -210,131 +129,63 @@ function displayGroupedPlugins(
 // ---------------------------------------------------------------------------
 
 export async function execute(ctx: WizardStepContext): Promise<WizardStepResult> {
-  // Check if claude CLI is available
   if (!(await isClaudeAvailable())) {
     p.log.warn("Claude Code CLI not found. Skipping plugin installation.");
     p.log.info("Install Claude Code first: https://claude.ai/claude-code");
     return { success: true, data: { pluginsInstalled: 0, reason: "cli-not-found" } };
   }
 
-  // --- Install Dafke plugins from local marketplace ---
-  try {
-    const packageRoot = findProjectRoot();
+  const installedBefore = await getInstalledPlugins();
+  const installedNames = new Set(installedBefore.map((pl) => pl.name));
 
-    // Add Dafke marketplace from local package (idempotent — check first)
-    let marketplaceReady = false;
-    try {
-      const { stdout: marketplaces } = await execa("claude", ["plugin", "marketplace", "list"], { timeout: 15_000 });
-      if (marketplaces.includes(DAFKE_MARKETPLACE_NAME)) {
-        marketplaceReady = true;
-      } else {
-        p.log.info("Adding Dafke plugin marketplace...");
-        await execa("claude", ["plugin", "marketplace", "add", resolve(packageRoot), "--scope", "project"], { timeout: 30_000 });
-        p.log.success("Dafke marketplace added");
-        marketplaceReady = true;
-      }
-    } catch (marketplaceErr) {
-      p.log.warn(`Dafke marketplace setup failed: ${marketplaceErr instanceof Error ? marketplaceErr.message : String(marketplaceErr)}`);
-      p.log.info("You can add it manually: claude plugin marketplace add <path-to-dafke>");
-    }
+  let totalInstalled = 0;
+  const allFailures: string[] = [];
 
-    // Install dafke plugins (only if marketplace is ready)
-    if (marketplaceReady) {
-      const installed = await getInstalledPlugins();
-      const installedNames = new Set(installed.map((pl) => pl.name));
-      let corulusInstalled = 0;
-
-      for (const name of DAFKE_PLUGIN_NAMES) {
-        if (installedNames.has(name)) continue;
-        p.log.info(`Installing ${name}...`);
-        const ok = await installPlugin(name, DAFKE_MARKETPLACE_NAME);
-        if (ok) {
-          corulusInstalled++;
-          p.log.success(`${name}: installed`);
-        } else {
-          p.log.warn(`${name}: failed`);
-        }
-      }
-
-      if (corulusInstalled > 0) {
-        p.log.success(`Installed ${corulusInstalled} Dafke plugin(s)`);
-      } else if (installedNames.size > 0) {
-        p.log.info("All Dafke plugins already installed");
-      }
-    }
-  } catch (err) {
-    p.log.warn(`Dafke plugin setup failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  // --- Install third-party plugins ---
-
-  // Read assessment scores from the context (set by step-assess)
-  const scores = ctx.answers["scores"] as Record<string, number> | undefined;
-
-  // Sort plugins by priority, taking scores into account
-  const sorted = prioritizePlugins(RECOMMENDED_PLUGINS, scores);
-
-  // In non-interactive mode, skip "useful" plugins to reduce noise in CI
-  const candidates = ctx.nonInteractive
-    ? sorted.filter((pl) => pl.priority !== "useful")
-    : sorted;
-
-  if (ctx.nonInteractive && sorted.length !== candidates.length) {
-    const skipped = sorted.filter((pl) => pl.priority === "useful");
-    p.log.info(
-      `Skipping ${skipped.length} optional plugin(s) in non-interactive mode: ${skipped.map((pl) => pl.name).join(", ")}`,
-    );
-  }
-
-  // Check which plugins are already installed
-  const installed = await getInstalledPlugins();
-  const installedNames = new Set(installed.map((pl) => pl.name));
-
-  const toInstall = candidates.filter((pl) => !installedNames.has(pl.name));
-
-  if (toInstall.length === 0) {
-    p.log.success(`All ${candidates.length} recommended plugins already installed.`);
-    return { success: true, data: { pluginsInstalled: 0, alreadyInstalled: candidates.length } };
-  }
-
-  // Display grouped overview
-  displayGroupedPlugins(toInstall, scores);
-
-  p.log.info(`${toInstall.length} plugin(s) to install (${installed.length} already present)`);
-
-  if (!ctx.nonInteractive) {
-    const proceed = await p.confirm({ message: `Install ${toInstall.length} plugin(s)?` });
-    if (p.isCancel(proceed) || !proceed) {
-      p.log.info("Skipped plugin installation");
-      return { success: true, data: { pluginsInstalled: 0 } };
-    }
-  }
-
-  let successCount = 0;
-  const failures: string[] = [];
-
-  for (const plugin of toInstall) {
-    const s = p.spinner();
-    s.start(`Installing ${plugin.name}...`);
-    const ok = await installPlugin(plugin.name, plugin.marketplace);
-    if (ok) {
-      successCount++;
-      s.stop(`${plugin.name}: installed`);
+  // --- 1. Dafke plugins (local marketplace) ---
+  const dafkeReady = await ensureMarketplace(DAFKE_MARKETPLACE_NAME, resolve(findProjectRoot()));
+  if (dafkeReady) {
+    const dafkeItems = DAFKE_PLUGIN_NAMES.map((name) => ({ name, marketplace: DAFKE_MARKETPLACE_NAME }));
+    const pending = dafkeItems.filter((i) => !installedNames.has(i.name));
+    if (pending.length === 0) {
+      p.log.success("All Dafke plugins already installed.");
     } else {
-      s.stop(`${plugin.name}: failed`);
-      failures.push(plugin.name);
+      p.log.info(`Dafke plugins: ${pending.map((i) => i.name).join(", ")}`);
+      const res = await installGroup(dafkeItems, installedNames);
+      totalInstalled += res.installed;
+      allFailures.push(...res.failures);
     }
   }
 
-  if (failures.length > 0) {
-    p.log.warn(`${failures.length} plugin(s) failed: ${failures.join(", ")}`);
-    p.log.info("You can install them manually: claude plugin install <name>@claude-plugins-official");
+  // --- 2. Recommended plugins (official Anthropic marketplace) ---
+  const officialReady = await ensureMarketplace(OFFICIAL_MARKETPLACE, OFFICIAL_MARKETPLACE_SOURCE);
+  if (officialReady) {
+    const sorted = prioritizePlugins(RECOMMENDED_PLUGINS);
+    const pending = sorted.filter((pl) => !installedNames.has(pl.name));
+    if (pending.length === 0) {
+      p.log.success("All recommended plugins already installed.");
+    } else {
+      for (const pl of pending) {
+        p.log.message(`  ${pl.name} — ${pl.description}`);
+      }
+      let proceed = true;
+      if (!ctx.nonInteractive) {
+        const answer = await p.confirm({ message: `Install ${pending.length} recommended plugin(s)?` });
+        proceed = !p.isCancel(answer) && answer === true;
+      }
+      if (proceed) {
+        const res = await installGroup(sorted, installedNames);
+        totalInstalled += res.installed;
+        allFailures.push(...res.failures);
+      } else {
+        p.log.info("Skipped recommended plugins");
+      }
+    }
   }
 
-  p.log.success(`Installed ${successCount}/${toInstall.length} plugins`);
+  if (allFailures.length > 0) {
+    p.log.warn(`${allFailures.length} plugin(s) failed: ${allFailures.join(", ")}`);
+  }
+  p.log.success(`Installed ${totalInstalled} plugin(s)`);
 
-  return {
-    success: true,
-    data: { pluginsInstalled: successCount, pluginsFailed: failures },
-  };
+  return { success: true, data: { pluginsInstalled: totalInstalled, pluginsFailed: allFailures } };
 }

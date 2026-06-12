@@ -27,28 +27,9 @@ interface GitNexusStats {
   flows: number;
 }
 
-async function indexGitNexus(repoRoot: string): Promise<GitNexusStats | null> {
-  try {
-    console.log(chalk.dim("    Indexing codebase with GitNexus..."));
-    await execa("npx", ["-y", "gitnexus", "analyze"], { cwd: repoRoot, timeout: 180_000 });
-  } catch {
-    return null;
-  }
-
-  try {
-    const metaPath = join(repoRoot, ".gitnexus", "meta.json");
-    if (existsSync(metaPath)) {
-      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as Record<string, unknown>;
-      const stats = meta["stats"] as Record<string, number> | undefined;
-      return {
-        symbols: stats?.["symbols"] ?? 0,
-        edges: stats?.["edges"] ?? 0,
-        clusters: stats?.["clusters"] ?? 0,
-        flows: stats?.["flows"] ?? 0,
-      };
-    }
-  } catch { /* ignore */ }
-  return { symbols: 0, edges: 0, clusters: 0, flows: 0 };
+async function indexGitNexus(_repoRoot: string): Promise<GitNexusStats | null> {
+    // Code-graph indexing was removed from Dafke; docs generation works without it.
+    return null
 }
 
 async function generateWiki(repoRoot: string): Promise<string[]> {

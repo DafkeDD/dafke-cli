@@ -14,6 +14,8 @@ export const DAFKE_PLUGINS: readonly CorulusPlugin[] = [
   { name: "dafke-observability", description: "CI/CD monitoring, DORA metrics, backlog (5 skills)" },
   { name: "dafke-docs", description: "Architecture docs, AI doc crew, feature docs, onboarding (5 skills, 11 agents)" },
   { name: "dafke-config", description: "Init, doctor, update, discover (4 skills)" },
+  { name: "dafke-frontend", description: "Pasport design system, next-intl i18n, UI/UX + Framer Motion (Next.js)" },
+  { name: "dafke-skills", description: "Author and optimize Dafke skills (wraps skill-creator)" },
 ] as const;
 
 export const DAFKE_PLUGIN_NAMES: readonly string[] = DAFKE_PLUGINS.map((p) => p.name);

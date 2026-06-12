@@ -20,6 +20,7 @@ const main = defineCommand({
   },
   subCommands: {
     init: () => import("./commands/init.js").then((m) => m.default),
+    create: () => import("./commands/create.js").then((m) => m.default),
     audit: () => import("./commands/audit.js").then((m) => m.default),
     resolve: () => import("./commands/resolve.js").then((m) => m.default),
     update: () => import("./commands/update.js").then((m) => m.default),
@@ -35,7 +36,7 @@ const main = defineCommand({
   },
   async run({ rawArgs }) {
     // citty calls main run() even for subcommands — only show banner when no subcommand given
-    const subCommandNames = ["init", "audit", "resolve", "update", "status", "doctor", "connect", "repos", "hook", "skills", "plugin", "docs", "gendoc"];
+    const subCommandNames = ["init", "create", "audit", "resolve", "update", "status", "doctor", "connect", "repos", "hook", "skills", "plugin", "docs", "gendoc"];
     const hasSubCommand = (rawArgs ?? []).some((arg: string) => subCommandNames.includes(arg));
     if (hasSubCommand) return;
 

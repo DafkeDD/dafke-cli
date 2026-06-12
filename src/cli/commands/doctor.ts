@@ -192,14 +192,6 @@ function checkGitHooks(repoRoot: string, _fix: boolean): CheckResult {
   return { name: "Git Hooks", passed: false, message: "No lefthook.yml found — git hooks not installed", fixable: false };
 }
 
-function checkGitNexusIndex(repoRoot: string, _fix: boolean): CheckResult {
-  const dir = join(repoRoot, ".gitnexus");
-  if (existsSync(dir)) {
-    return { name: "GitNexus Index", passed: true, message: ".gitnexus/ directory exists", fixable: false };
-  }
-  return { name: "GitNexus Index", passed: false, message: "No .gitnexus/ directory — run `npx gitnexus analyze`", fixable: false };
-}
-
 async function checkExternalTools(repoRoot: string): Promise<CheckResult[]> {
   const results: CheckResult[] = [];
   const manifestPath = join(repoRoot, ".dafke", "manifest.yaml");
@@ -362,10 +354,6 @@ export default defineCommand({
       {
         title: "Check git hooks",
         task: () => { results.push(checkGitHooks(repoRoot, fix)); },
-      },
-      {
-        title: "Check GitNexus index",
-        task: () => { results.push(checkGitNexusIndex(repoRoot, fix)); },
       },
       {
         title: "Check external tools",

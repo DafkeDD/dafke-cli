@@ -98,16 +98,12 @@ export interface GitHubProviderConfig {
 export type RepositoryProviderFactoryConfig = GitHubProviderConfig;
 
 export function createRepositoryProvider(options: RepositoryProviderFactoryConfig): RepositoryProvider {
-  switch (options.type) {
-    case "github":
-      return new GitHubRepositoryProvider(options.config, options.owner);
-    default: {
-      const _exhaustive: never = options;
-      throw new IntegrationError(
-        `Unknown repository provider type: ${String((_exhaustive as RepositoryProviderFactoryConfig).type)}`,
-        "RepositoryProvider",
-        "Supported types are: github",
-      );
-    }
+  if (options.type === "github") {
+    return new GitHubRepositoryProvider(options.config, options.owner);
   }
+  throw new IntegrationError(
+    `Unknown repository provider type: ${String((options as { type?: string }).type)}`,
+    "RepositoryProvider",
+    "Supported types are: github",
+  );
 }

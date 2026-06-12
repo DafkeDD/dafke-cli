@@ -29,11 +29,6 @@ export function getInstallHint(tool: string): string {
       linux: "snap install gitleaks  OR  https://github.com/gitleaks/gitleaks",
       win32: "choco install gitleaks  OR  scoop install gitleaks",
     },
-    az: {
-      darwin: "brew install azure-cli",
-      linux: "curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash",
-      win32: "winget install Microsoft.AzureCLI",
-    },
     gh: {
       darwin: "brew install gh",
       linux: "apt install gh  OR  https://cli.github.com",
@@ -121,9 +116,6 @@ export async function checkPrerequisites(
 
   // Optional: only check if provider is configured
   const provList = providers ?? [];
-  if (provList.includes("azureDevOps")) {
-    checks.push(checkTool("az", "az", ["--version"], "optional"));
-  }
   if (provList.includes("github")) {
     checks.push(checkTool("gh", "gh", ["--version"], "optional"));
   }

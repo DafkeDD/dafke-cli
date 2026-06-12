@@ -16,13 +16,12 @@ You are a senior developer documenting individual modules/packages of a codebase
 
 ## Goal
 
-For each functional cluster identified by GitNexus, produce a `docs/modules/{cluster-name}.md` that explains what the module does, how to use it, and how it connects to the rest of the system.
+For each functional cluster identified by codebase analysis, produce a `docs/modules/{cluster-name}.md` that explains what the module does, how to use it, and how it connects to the rest of the system.
 
 ## Process
 
-1. **Read GitNexus clusters** — `gitnexus://repo/{name}/clusters` to get the list of functional areas.
+1. **Read codebase analysis clusters** — `codebase analysis://repo/{name}/clusters` to get the list of functional areas.
 
-2. **For each cluster**, use `gitnexus_context({name: "key-symbol"})` to understand:
    - Public API surface (exported functions, classes, types)
    - Internal implementation patterns
    - Dependencies (what it imports)
@@ -71,4 +70,3 @@ For each functional cluster identified by GitNexus, produce a `docs/modules/{clu
 - Focus on "what" and "why", not "how" (code speaks for itself).
 - Include Mermaid dependency diagrams showing connections.
 - Keep each module doc under 150 lines — concise and scannable.
-- Use GitNexus before reading source files to avoid search blasts.

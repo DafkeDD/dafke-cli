@@ -1,19 +1,16 @@
 /**
- * Step 5: Claude Code Hooks & Settings
+ * Step: Claude Code Hooks & Settings
  *
- * Generates .claude/settings.json with standard hook configuration and
- * lefthook.yml for git hooks. Shows previews and writes after approval.
+ * Generates .claude/settings.json (hooks), .claude/mcp.json (Playwright MCP),
+ * and lefthook.yml for git hooks. GitHub-only — no Azure DevOps / GitNexus /
+ * Context7, and no automatic update-check.
  */
 
 import * as p from "@clack/prompts";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import envPaths from "env-paths";
-import { execa, execaSync } from "execa";
-import { ConfigManager } from "../../config/config-manager.js";
+import { execa } from "execa";
 import { TemplateEngine } from "../../scaffold/template-engine.js";
-import { extractOrgFromUrl } from "../../../utils/ado-helpers.js";
 import { VERSION } from "../../../version.js";
 import type { WizardStepContext, WizardStepResult } from "../wizard-steps.js";
 
@@ -22,7 +19,6 @@ async function installLefthook(repoRoot: string): Promise<void> {
     await execa("npx", ["-y", "@evilmartians/lefthook", "install"], { cwd: repoRoot, timeout: 30_000 });
   } catch {
     try {
-      // Fallback: try brew-installed lefthook
       await execa("lefthook", ["install"], { cwd: repoRoot, timeout: 10_000 });
     } catch {
       // lefthook not available — hooks won't be active but files are written
@@ -30,21 +26,14 @@ async function installLefthook(repoRoot: string): Promise<void> {
   }
 }
 
-// AI-code-responsibility disclaimer shown to the user at session start via a
-// SessionStart hook. Claude Code reads the `systemMessage` field from a hook's
-// JSON stdout and surfaces it to the user before any prompt — so this is the
-// correct place for a once-per-session notice (not a per-prompt echo that the
-// model would then re-print in every response).
+// AI-code-responsibility disclaimer shown once per session via a SessionStart hook.
 const DISCLAIMER_TEXT = "⚠️  DISCLAIMER: Put it all together, and you, the human submitter, bear full responsibility and accountability for reviewing the AI-generated code, ensuring license compliance, and for any bugs or security flaws that arise.";
 
 function buildDisclaimerHookCommand(): string {
-  // Outer single-quoted bash string so JSON double-quotes pass through unescaped.
   return `echo '${JSON.stringify({ systemMessage: DISCLAIMER_TEXT })}'`;
 }
 
 function buildSettings(): Record<string, unknown> {
-  // Hook commands check for dafke and warn if not installed.
-  // Event names match hook.ts switch cases exactly.
   const check = "command -v dafke >/dev/null 2>&1";
   const warn = "echo 'dafke not found in PATH — install with: npm i -g dafke'";
   return {
@@ -57,7 +46,6 @@ function buildSettings(): Record<string, unknown> {
             { type: "command", command: buildDisclaimerHookCommand() },
             { type: "command", command: `${check} && dafke hook skills-check || true`, timeout: 10 },
             { type: "command", command: `${check} && dafke hook doc-check || true`, timeout: 5 },
-            { type: "command", command: `${check} && dafke update --check 2>/dev/null || true`, timeout: 10 },
           ],
         },
       ],
@@ -84,16 +72,6 @@ function buildSettings(): Record<string, unknown> {
           matcher: "Bash",
           hooks: [{ type: "command", command: `${check} && dafke hook post-bash || ${warn}` }],
         },
-        {
-          matcher: "Bash(git commit|git merge|git rebase)",
-          hooks: [
-            {
-              type: "command",
-              command: "npm_config_registry=https://registry.npmjs.org npx -y gitnexus analyze --quiet 2>/dev/null || echo 'GitNexus index update failed — run npx gitnexus analyze manually'",
-              timeout: 30,
-            },
-          ],
-        },
       ],
       Stop: [
         {
@@ -116,140 +94,27 @@ function buildLefthook(): string {
   return engine.getTemplate("hooks/lefthook.yml");
 }
 
-function isValidOrgName(org: string): boolean {
-  return /^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(org);
-}
-
-// Pinned MCP server versions — validated for Dafke healthcare software.
-// Update these deliberately after testing, never use @latest in production.
-const MCP_VERSIONS = {
-  context7: "2.1.8",
-  playwright: "0.0.70",
-  gitnexus: "0.2.0",
-} as const;
-
-function buildMcpConfig(repoRoot: string, adoOrg?: string): Record<string, unknown> {
-  const servers: Record<string, unknown> = {
-    context7: {
-      command: "npx",
-      args: ["-y", `@upstash/context7-mcp@${MCP_VERSIONS.context7}`],
-      env: {},
-      description: "Context7 — up-to-date library documentation for any framework or SDK",
-    },
-    playwright: {
-      command: "npx",
-      args: ["-y", `@playwright/mcp@${MCP_VERSIONS.playwright}`],
-      env: {},
-      description: "Playwright — browser automation for testing and debugging web UIs",
-    },
-    gitnexus: {
-      command: "npx",
-      args: ["-y", `gitnexus-mcp@${MCP_VERSIONS.gitnexus}`],
-      env: { GITNEXUS_REPO_PATH: repoRoot },
-      description: "GitNexus — codebase knowledge graph for architecture exploration and impact analysis",
+function buildMcpConfig(): Record<string, unknown> {
+  return {
+    mcpServers: {
+      playwright: {
+        command: "npx",
+        args: ["-y", "@playwright/mcp@latest"],
+        env: {},
+        description: "Playwright — browser automation for testing and debugging web UIs",
+      },
     },
   };
-
-  // Add Azure DevOps MCP if org is configured.
-  // Uses a wrapper script (.claude/azure-devops-mcp.sh) to map AZURE_PERSONAL_TOKEN
-  // to PERSONAL_ACCESS_TOKEN (which the MCP server expects).
-  const org = adoOrg ?? detectAdoOrg(repoRoot);
-  if (org && isValidOrgName(org)) {
-    servers["azure-devops"] = {
-      command: "bash",
-      args: [join(repoRoot, ".claude", "azure-devops-mcp.sh")],
-      env: { npm_config_registry: "https://registry.npmjs.org" },
-      description: `Azure DevOps — pipelines, builds, PRs, work items for ${org}`,
-    };
-  }
-
-  return { mcpServers: servers };
-}
-
-function detectAdoOrg(repoRoot: string): string | null {
-  // Try to detect Azure DevOps org from git remote
-  try {
-    const result = execaSync("git", ["remote", "get-url", "origin"], { cwd: repoRoot });
-    const remote = result.stdout.trim();
-    // SSH: git@ssh.dev.azure.com:v3/{org}/{project}/{repo}
-    const sshMatch = remote.match(/dev\.azure\.com:v3\/([^/]+)\//);
-    if (sshMatch?.[1]) return sshMatch[1];
-    // HTTPS: https://dev.azure.com/{org}/{project}/_git/{repo}
-    const httpsMatch = remote.match(/dev\.azure\.com\/([^/]+)\//);
-    if (httpsMatch?.[1]) return httpsMatch[1];
-  } catch { /* not a git repo or no remote */ }
-  return null;
-}
-
-// Re-export for backward compatibility; canonical location is utils/ado-helpers.ts
-export { extractOrgFromUrl } from "../../../utils/ado-helpers.js";
-
-function buildAdoMcpWrapper(org: string, _configDir: string): string {
-  // Resolve config path at runtime via $HOME to avoid baking in absolute paths.
-  // The MCP server expects PERSONAL_ACCESS_TOKEN to be base64-encoded ":PAT"
-  // (Basic auth format), NOT the raw PAT string.
-  return `#!/usr/bin/env bash
-# Azure DevOps MCP wrapper — reads PAT from dafke config or AZURE_PERSONAL_TOKEN env var
-DAFKE_CONFIG="$HOME/Library/Preferences/dafke/config.yaml"
-[ "$(uname)" = "Linux" ] && DAFKE_CONFIG="$HOME/.config/dafke/config.yaml"
-if [ -n "\${AZURE_PERSONAL_TOKEN:-}" ]; then
-  RAW_PAT="\${AZURE_PERSONAL_TOKEN}"
-elif [ -f "\${DAFKE_CONFIG}" ]; then
-  RAW_PAT=$(grep 'pat:' "\${DAFKE_CONFIG}" | head -1 | sed 's/.*pat: *//')
-fi
-# MCP server expects base64-encoded ":PAT" for Basic auth
-if [ -n "\${RAW_PAT:-}" ]; then
-  export PERSONAL_ACCESS_TOKEN=$(printf ":%s" "\${RAW_PAT}" | base64 | tr -d '\\n')
-fi
-export npm_config_registry=https://registry.npmjs.org
-exec npx -y @azure-devops/mcp ${org} --authentication pat
-`;
-}
-
-/**
- * Register an MCP server in ~/.claude.json for the given project.
- * Claude Code reads MCP servers from this file, not from .claude/mcp.json.
- */
-async function registerMcpServer(
-  repoRoot: string,
-  name: string,
-  server: { command: string; args: string[]; env?: Record<string, string> },
-): Promise<void> {
-  const claudeJsonPath = join(homedir(), ".claude.json");
-  let data: Record<string, unknown> = {};
-  try {
-    const raw = await readFile(claudeJsonPath, "utf-8");
-    data = JSON.parse(raw) as Record<string, unknown>;
-  } catch { /* file doesn't exist yet */ }
-
-  const projects = (data["projects"] ?? {}) as Record<string, Record<string, unknown>>;
-  const project = projects[repoRoot] ?? {};
-  const mcpServers = (project["mcpServers"] ?? {}) as Record<string, unknown>;
-
-  mcpServers[name] = { type: "stdio", ...server };
-  project["mcpServers"] = mcpServers;
-  projects[repoRoot] = project;
-  data["projects"] = projects;
-
-  await writeFile(claudeJsonPath, JSON.stringify(data, null, 2), "utf-8");
 }
 
 export async function execute(ctx: WizardStepContext): Promise<WizardStepResult> {
   const claudeDir = join(ctx.repoRoot, ".claude");
   const settingsPath = join(claudeDir, "settings.json");
   const mcpPath = join(claudeDir, "mcp.json");
-  const adoMcpWrapperPath = join(claudeDir, "azure-devops-mcp.sh");
   const lefthookPath = join(ctx.repoRoot, "lefthook.yml");
 
   const settings = buildSettings();
-
-  // Resolve ADO org: git remote first, then global config fallback
-  const configManager = new ConfigManager();
-  const globalConfig = await configManager.loadGlobalConfig();
-  const adoOrg = detectAdoOrg(ctx.repoRoot)
-    ?? extractOrgFromUrl(globalConfig.auth.azureDevOps?.orgUrl ?? "");
-  const mcpConfig = buildMcpConfig(ctx.repoRoot, adoOrg ?? undefined);
-
+  const mcpConfig = buildMcpConfig();
   const lefthook = buildLefthook();
 
   p.log.message("Hooks to install:");
@@ -262,30 +127,17 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
   p.log.message("  pre-push    - test + security audit");
   p.log.message("  commit-msg  - conventional commits");
 
-  const globalConfigDir = envPaths("dafke", { suffix: "" }).config;
-
-  if (ctx.nonInteractive) {
+  const writeAll = async (): Promise<void> => {
     await mkdir(claudeDir, { recursive: true });
     await writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
     await writeFile(mcpPath, JSON.stringify(mcpConfig, null, 2), "utf-8");
-    if (adoOrg) {
-      await writeFile(adoMcpWrapperPath, buildAdoMcpWrapper(adoOrg, globalConfigDir), "utf-8");
-      await chmod(adoMcpWrapperPath, 0o755);
-      await registerMcpServer(ctx.repoRoot, "azure-devops", {
-        command: "bash",
-        args: [adoMcpWrapperPath],
-        env: { npm_config_registry: "https://registry.npmjs.org" },
-      });
-    }
     await writeFile(lefthookPath, lefthook, "utf-8");
     await installLefthook(ctx.repoRoot);
-    p.log.success("Hooks, settings, and MCP servers written");
-    if (adoOrg) {
-      p.log.info("Azure DevOps MCP registered in ~/.claude.json (PAT from dafke config).");
-    }
-    if (globalConfig.auth.jira || globalConfig.auth.confluence) {
-      p.log.info("Jira/Confluence configured \u2014 use the Atlassian plugin in Claude Code for issue tracking");
-    }
+  };
+
+  if (ctx.nonInteractive) {
+    await writeAll();
+    p.log.success("Hooks, settings, and MCP config written");
     return { success: true, data: { hooksInstalled: true } };
   }
 
@@ -295,28 +147,7 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
     return { success: true, data: { hooksInstalled: false } };
   }
 
-  await mkdir(claudeDir, { recursive: true });
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
-  await writeFile(mcpPath, JSON.stringify(mcpConfig, null, 2), "utf-8");
-  if (adoOrg) {
-    await writeFile(adoMcpWrapperPath, buildAdoMcpWrapper(adoOrg, globalConfigDir), "utf-8");
-    await chmod(adoMcpWrapperPath, 0o755);
-    await registerMcpServer(ctx.repoRoot, "azure-devops", {
-      command: "bash",
-      args: [adoMcpWrapperPath],
-      env: { npm_config_registry: "https://registry.npmjs.org" },
-    });
-  }
-  await writeFile(lefthookPath, lefthook, "utf-8");
-  await installLefthook(ctx.repoRoot);
-
+  await writeAll();
   p.log.success("Written .claude/settings.json, .claude/mcp.json, and lefthook.yml (hooks activated)");
-  if (adoOrg) {
-    p.log.info("Azure DevOps MCP registered in ~/.claude.json (PAT from dafke config).");
-  }
-  if (globalConfig.auth.jira || globalConfig.auth.confluence) {
-    p.log.info("Jira/Confluence configured \u2014 use the Atlassian plugin in Claude Code for issue tracking");
-  }
-
   return { success: true, data: { hooksInstalled: true } };
 }

@@ -2,22 +2,14 @@
 
 # MCP Tools Reference
 
-## Context7
-Use for library documentation lookup (two-step process):
-1. `resolve-library-id` — find the library ID
-2. `query-docs` — fetch current documentation
-
-Always prefer Context7 over training data for library APIs.
-
-## GitNexus (if indexed)
-- `gitnexus_query({query: "concept"})` — find execution flows
-- `gitnexus_context({name: "symbol"})` — 360-degree view of a symbol
-- `gitnexus_impact({target: "symbol", direction: "upstream"})` — blast radius before editing
-- `gitnexus_detect_changes()` — pre-commit scope check
-- Run `gitnexus_impact` before modifying any function or class
+## Playwright
+Use for browser automation when testing or debugging web UIs:
+- Drive a real browser (navigate, click, type, assert).
+- Capture screenshots / inspect the rendered DOM.
+- Verify frontend behaviour end-to-end.
 
 ## Sequential Thinking
 Use for complex analysis before implementation:
-- Break down multi-step problems
-- Evaluate trade-offs between approaches
-- Plan refactoring strategies
+- Break down multi-step problems.
+- Evaluate trade-offs between approaches.
+- Plan refactoring strategies.

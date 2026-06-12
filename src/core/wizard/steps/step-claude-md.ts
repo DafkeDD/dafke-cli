@@ -30,6 +30,7 @@ function getMutationCommand(techStack: TechStack): string {
       return "mutmut run";
     case "delphi":
     case "foxpro":
+    case "lua":
     case "unknown":
       return "";
   }
@@ -38,7 +39,14 @@ function getMutationCommand(techStack: TechStack): string {
 async function buildClaudeMd(techStack: TechStack, repoRoot: string, ciPlatform?: string): Promise<string> {
   const registry = createAdapterRegistry();
   const adapter = registry.get(techStack);
-  const stackSection = adapter?.getClaudeMdSection() ?? "";
+  const engine = new TemplateEngine();
+
+  // Tech-stack guidelines: prefer the adapter's section, otherwise fall back to
+  // a per-language template (e.g. claude-md/lua.md) when one exists.
+  let stackSection = adapter?.getClaudeMdSection() ?? "";
+  if (!stackSection && engine.hasTemplate(`claude-md/${techStack}.md`)) {
+    stackSection = engine.getTemplate(`claude-md/${techStack}.md`);
+  }
 
   // Get build info from adapter for Quick Commands section
   let buildCommand = "npm run build";
@@ -59,9 +67,13 @@ async function buildClaudeMd(techStack: TechStack, repoRoot: string, ciPlatform?
     } catch {
       // Fallback to defaults if getBuildInfo fails
     }
+  } else if (techStack === "lua") {
+    // FiveM/CitizenFX resources are interpreted — no build step.
+    buildCommand = "N/A — FiveM resources run interpreted";
+    testCommand = "In-game: ensure/restart the resource on FXServer";
+    lintCommand = "luacheck .";
+    typecheckCommand = "";
   }
-
-  const engine = new TemplateEngine();
 
   // Load and render the constitution template if it exists.
   // The rendered constitution is injected via simple {{constitution}} substitution

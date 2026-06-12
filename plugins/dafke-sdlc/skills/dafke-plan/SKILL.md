@@ -21,7 +21,7 @@ Generate a detailed implementation plan for a user story.
 
 2. **Fetch the story** — Use `/dafke-story <ID>` to retrieve story details and acceptance criteria.
 
-3. **Analyze the codebase** — Use the Explorer agent (or GitNexus if indexed) to:
+3. **Analyze the codebase** — Use the Explorer agent (or codebase analysis if indexed) to:
    - Identify files and modules related to the story domain.
    - Map existing patterns (naming, structure, test approach).
    - Identify dependencies and integration points.
@@ -75,4 +75,3 @@ Generate a detailed implementation plan for a user story.
 ## Error Handling
 
 - Story has no acceptance criteria: warn and suggest running `/dafke-story` first.
-- Codebase not indexed: proceed with file-system analysis, suggest running GitNexus analyze.

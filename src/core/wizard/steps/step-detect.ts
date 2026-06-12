@@ -16,6 +16,7 @@ const TECH_LABELS: Record<TechStack, string> = {
   java: "Java (Maven/Gradle)",
   dotnet: ".NET (C#/F#)",
   typescript: "TypeScript / Node.js",
+  lua: "Lua",
   python: "Python (Poetry/pip)",
   delphi: "Delphi / Object Pascal",
   foxpro: "Visual FoxPro",
@@ -126,6 +127,7 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
     message: "Confirm detected tech stack (or override):",
     options: [
       { value: "typescript", label: "TypeScript / Node.js", hint: "recommended" },
+      { value: "lua", label: "Lua" },
       { value: "unknown", label: "Other / Skip" },
     ],
   });

@@ -1,6 +1,9 @@
 {
   "name": "dafke-frontend",
   "version": "0.1.0",
-  "description": "Frontend standards — Pasport design system (light/dark), next-intl i18n (EN/NL/FR/DE), and UI/UX patterns with Framer Motion. Next.js only.",
-  "author": { "name": "Davey — ITWorxs", "email": "davey@itworxs.be" }
+  "description": "Frontend standards \u2014 dafkeUI component library (Pasport design, light/dark), next-intl i18n (EN/NL/FR/DE), Framer Motion, and the frontend/backend scaffold. Next.js only, no shadcn/Radix.",
+  "author": {
+    "name": "Davey \u2014 ITWorxs",
+    "email": "davey@itworxs.be"
+  }
 }

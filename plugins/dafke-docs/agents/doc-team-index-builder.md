@@ -66,7 +66,6 @@ Inspired by Pharmacist-1.0's `_index/INDEX-SUMMARY.md`, create a question-to-fil
 |------|----------|
 | Understand architecture before editing | Read ARCHITECTURE.md first |
 | Find relevant module for a change | Check INDEX.md routing table |
-| Assess impact of a change | Use GitNexus `gitnexus_impact()` |
 | Understand execution flows | Read ARCHITECTURE.md §Data Flows |
 ```
 
