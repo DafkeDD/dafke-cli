@@ -8,7 +8,7 @@
 import * as p from "@clack/prompts";
 import { createAdapterRegistry } from "../../../adapters/adapter-registry.js";
 import { isClaudeAvailable } from "../../../utils/claude-cli.js";
-import { checkPrerequisites } from "../../../utils/prerequisites.js";
+import { checkPrerequisites, installTool } from "../../../utils/prerequisites.js";
 import type { TechStack } from "../../config/config-schema.js";
 import type { WizardStepContext, WizardStepResult } from "../wizard-steps.js";
 
@@ -88,6 +88,23 @@ export async function execute(ctx: WizardStepContext): Promise<WizardStepResult>
     for (const r of recommended) {
       p.log.message(`  \u2717 ${r.name} \u2014 ${r.installHint}`);
       ctx.degradedFeatures?.push({ feature: r.name, reason: `Not installed. ${r.installHint}` });
+    }
+  }
+
+  // Offer to auto-install the tools we have a reliable installer for.
+  const installable = recommended.filter((r) => r.name === "gitleaks" || r.name === "lefthook");
+  if (installable.length > 0 && !ctx.nonInteractive) {
+    const doInstall = await p.confirm({
+      message: `Install missing recommended tool(s) now? (${installable.map((r) => r.name).join(", ")})`,
+      initialValue: true,
+    });
+    if (!p.isCancel(doInstall) && doInstall) {
+      for (const r of installable) {
+        p.log.step(`Installing ${r.name}...`);
+        const res = await installTool(r.name);
+        if (res.ok) p.log.success(`${r.name}: ${res.message}`);
+        else p.log.warn(`${r.name}: ${res.message}`);
+      }
     }
   }
 
